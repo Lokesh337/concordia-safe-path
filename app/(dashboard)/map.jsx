@@ -8,7 +8,6 @@ import { useIncidents } from '../../hooks/useIncidents'
 import ThemedView from '../../components/ThemedView'
 import ThemedText from '../../components/ThemedText'
 import ThemedLoader from '../../components/ThemedLoader'
-import Spacer from '../../components/Spacer'
 
 const STATIC_MARKERS = [
     { id: '1', title: 'Hall Building',        description: 'Main hub', latitude: 45.4972, longitude: -73.5789 },
@@ -54,14 +53,11 @@ const Map = () => {
     }
 
     return (
-        <ThemedView style={styles.container} safe={true}>
-            <Spacer />
-            <ThemedText title={true} style={styles.heading}>Campus Map</ThemedText>
-            <Spacer />
+        <ThemedView style={[styles.container, {padding: 0}]} safe={true}>
 
             <MapView
                 ref={mapRef}
-                style={styles.map}
+                style={[styles.map, StyleSheet.absoluteFillObject]}
                 initialRegion={{
                     latitude: location.latitude,
                     longitude: location.longitude,

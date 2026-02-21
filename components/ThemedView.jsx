@@ -24,17 +24,6 @@ const ThemedView = ({style, safe = false, ...props}) => {
             ]}
             {...props}
         />
-        // <SafeAreaView
-        //     style={[{backgroundColor: theme.background}, styles.card, style]}
-        //     {...props}
-        // />
     )
 }
 export default ThemedView;
-
-const styles = StyleSheet.create({
-    card: {
-        // borderRadius: 5,
-        padding: 20
-    }
-})

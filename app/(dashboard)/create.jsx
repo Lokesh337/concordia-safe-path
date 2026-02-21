@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
+
 import { useEffect, useState } from 'react'
 import MapView, { Marker } from 'react-native-maps'
 import * as Location from 'expo-location'
@@ -27,8 +28,9 @@ const TYPE_OPTIONS = [
 ]
 
 const Create = () => {
-    const [title, setTitle] = useState("")
-    const [type, setType] = useState("")
+    const { type: initialType } = useLocalSearchParams()
+
+    const [type, setType] = useState(initialType || '')
     const [severity, setSeverity] = useState("")
     const [description, setDescription] = useState("")
 
@@ -53,13 +55,12 @@ const Create = () => {
     }, [])
 
     async function handleSubmit() {
-        if (!title.trim() || !type.trim() || !severity.trim() || !description.trim() || !pin) return
+        if (!type.trim() || !severity.trim() || !description.trim() || !pin) return
 
         setLoading(true)
 
-        await createIncident({ title, type, description, severity, latitude: pin.latitude, longitude: pin.longitude })
+        await createIncident({ type, description, severity, latitude: pin.latitude, longitude: pin.longitude })
 
-        setTitle("")
         setType("")
         setSeverity("")
         setDescription("")
@@ -72,93 +73,83 @@ const Create = () => {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView contentContainerStyle={styles.scroll}>
-                <ThemedView style={styles.container} safe={true}>
+                <ThemedView style={styles.container}>
+                    <Spacer height={20}/>
+                    <ThemedText title={true} style={styles.heading}>
+                        Report an Incident
+                    </ThemedText>
+                    <Spacer height={10}/>
 
-                <ThemedText title={true} style={styles.heading}>
-                    Report an Incident
-                </ThemedText>
-                <Spacer height={10}/>
+                    <ThemedDropdown
+                        style={styles.input}
+                        placeholder="Incident Type"
+                        value={type}
+                        options={TYPE_OPTIONS}
+                        onSelect={setType}
+                    />
 
-                <ThemedTextInput
-                    style={styles.input}
-                    placeholder="Incident name"
-                    value={title}
-                    onChangeText={setTitle}
-                />
-                <Spacer height={10}/>
+                    <Spacer height={10}/>
 
-                <ThemedDropdown
-                    style={styles.input}
-                    placeholder="Incident Type"
-                    value={type}
-                    options={TYPE_OPTIONS}
-                    onSelect={setType}
-                />
+                    <ThemedDropdown
+                        style={styles.input}
+                        placeholder="Incident Severity"
+                        value={severity}
+                        options={SEVERITY_OPTIONS}
+                        onSelect={setSeverity}
+                    />
+                    <Spacer height={10}/>
 
-                <Spacer height={10}/>
+                    <ThemedTextInput
+                        style={styles.multiline}
+                        placeholder="Incident Description"
+                        value={description}
+                        onChangeText={setDescription}
+                        multiline={true}
+                    />
 
-                <ThemedDropdown
-                    style={styles.input}
-                    placeholder="Incident Severity"
-                    value={severity}
-                    options={SEVERITY_OPTIONS}
-                    onSelect={setSeverity}
-                />
-                <Spacer height={10}/>
+                    <Spacer height={6} />
+                    {pin
+                        ? <ThemedText style={styles.pinConfirm}>📍 Pin placed</ThemedText>
+                        : <ThemedText style={styles.pinHint}>Tap the map to place a pin</ThemedText>
+                    }
+                    <Spacer height={6} />
 
-                <ThemedTextInput
-                    style={styles.multiline}
-                    placeholder="Incident Description"
-                    value={description}
-                    onChangeText={setDescription}
-                    multiline={true}
-                />
-                <Spacer height={10}/>
+                    <ThemedView style={styles.mapContainer}>
+                        {!userCoords && <ThemedLoader />}
+                        {userCoords && (
+                            <MapView
+                                style={styles.map}
+                                initialRegion={{
+                                    latitude: userCoords.latitude,
+                                    longitude: userCoords.longitude,
+                                    latitudeDelta: 0.005,
+                                    longitudeDelta: 0.005,
+                                }}
+                                showsUserLocation={true}
+                                showsPointsOfInterest={false}
+                                showsBuildings={false}
+                                showsTraffic={false}
+                                showsIndoors={false}
+                                showsCompass={false}
+                                toolbarEnabled={false}
+                                onPress={(e) => setPin(e.nativeEvent.coordinate)}
+                            >
+                                {pin && (
+                                    <Marker
+                                        coordinate={pin}
+                                        draggable
+                                        onDragEnd={(e) => setPin(e.nativeEvent.coordinate)}
+                                    />
+                                )}
+                            </MapView>
+                        )}
+                    </ThemedView>
 
-                <ThemedText style={styles.label}>Drop a Pin</ThemedText>
-                <Spacer height={6} />
-                {pin
-                    ? <ThemedText style={styles.pinConfirm}>📍 Pin placed</ThemedText>
-                    : <ThemedText style={styles.pinHint}>Tap the map to place a pin</ThemedText>
-                }
-                <Spacer height={6} />
-
-                <ThemedView style={styles.mapContainer}>
-                    {!userCoords && <ThemedLoader />}
-                    {userCoords && (
-                        <MapView
-                            style={styles.map}
-                            initialRegion={{
-                                latitude: userCoords.latitude,
-                                longitude: userCoords.longitude,
-                                latitudeDelta: 0.005,
-                                longitudeDelta: 0.005,
-                            }}
-                            showsUserLocation={true}
-                            showsPointsOfInterest={false}
-                            showsBuildings={false}
-                            showsTraffic={false}
-                            showsIndoors={false}
-                            showsCompass={false}
-                            toolbarEnabled={false}
-                            onPress={(e) => setPin(e.nativeEvent.coordinate)}
-                        >
-                            {pin && (
-                                <Marker
-                                    coordinate={pin}
-                                    draggable
-                                    onDragEnd={(e) => setPin(e.nativeEvent.coordinate)}
-                                />
-                            )}
-                        </MapView>
-                    )}
-                </ThemedView>
-
-                <ThemedButton onPress={handleSubmit} disabled={loading || !pin}>
-                    <Text style={{ color: '#fff' }}>
-                        {loading ? "Saving..." : !pin ? "Drop a Pin First" : "Report Incident"}
-                    </Text>
-                </ThemedButton>
+                    <ThemedButton onPress={handleSubmit} disabled={loading || !pin}>
+                        <Text style={{ color: '#fff' }}>
+                            {loading ? "Saving..." : !pin ? "Drop a Pin First" : "Report Incident"}
+                        </Text>
+                    </ThemedButton>
 
                 </ThemedView>
             </ScrollView>
@@ -203,7 +194,7 @@ const styles = StyleSheet.create({
     },
     mapContainer: {
         width: '90%',
-        height: 250,
+        height: 200,
         borderRadius: 10,
         overflow: 'hidden',
         justifyContent: 'center',

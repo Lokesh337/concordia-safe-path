@@ -1,10 +1,10 @@
 import { StyleSheet, Text } from 'react-native'
-import {useUser} from "../../hooks/useUser";
+import {useUser} from "../../../hooks/useUser";
 
-import Spacer from "../../components/Spacer"
-import ThemedText from "../../components/ThemedText"
-import ThemedView from "../../components/ThemedView"
-import ThemedButton from "../../components/ThemedButton";
+import Spacer from "../../../components/Spacer"
+import ThemedText from "../../../components/ThemedText"
+import ThemedView from "../../../components/ThemedView"
+import ThemedButton from "../../../components/ThemedButton";
 
 const Profile = () => {
 
@@ -18,7 +18,7 @@ const Profile = () => {
             </ThemedText>
             <Spacer />
 
-            <ThemedText>Time to start reading some books...</ThemedText>
+            <ThemedText>Profile Page</ThemedText>
             <Spacer />
 
             <ThemedButton onPress={logout}>

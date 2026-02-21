@@ -15,7 +15,6 @@ const Incidents = () => {
     return (
         <ThemedView style={styles.container} safe={true}>
 
-            <Spacer />
             <ThemedText title={true} style={styles.heading}>
                 Incidents list
             </ThemedText>
@@ -28,8 +27,7 @@ const Incidents = () => {
                 renderItem={({ item }) => (
                     <Pressable onPress={() => router.push(`/incidents/${item.id}`)}>
                         <ThemedCard style={styles.card}>
-                            <ThemedText style={styles.title}>{item.title}</ThemedText>
-                            <ThemedText>Type: {item.type}</ThemedText>
+                            <ThemedText style={styles.title}>Type: {item.type}</ThemedText>
                             <ThemedText>Severity {item.severity}</ThemedText>
                         </ThemedCard>
                     </Pressable>
