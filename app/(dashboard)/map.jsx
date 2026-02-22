@@ -1,21 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { StyleSheet } from 'react-native'
+import {StyleSheet, View} from 'react-native'
 import MapView, {Marker} from 'react-native-maps'
 import * as Location from 'expo-location'
 import { useIncidents } from '../../hooks/useIncidents'
-
+import {CONCORDIA_BUILDINGS} from "../../constants/Buildings";
 
 import ThemedView from '../../components/ThemedView'
 import ThemedText from '../../components/ThemedText'
 import ThemedLoader from '../../components/ThemedLoader'
 
-const STATIC_MARKERS = [
-    { id: '1', title: 'Hall Building',        description: 'Main hub', latitude: 45.4972, longitude: -73.5789 },
-    { id: '2', title: 'EV Building',          description: 'Engineering', latitude: 45.4957, longitude: -73.5780 },
-    { id: '3', title: 'MB Building',          description: 'Business', latitude: 45.4942, longitude: -73.5795 },
-    { id: '4', title: 'Library Building',     description: 'Webster Library', latitude: 45.4966, longitude: -73.5778 },
-    { id: '5', title: 'GM Building',          description: 'Guy-Metro', latitude: 45.4948, longitude: -73.5772 },
-]
 
 const Map = () => {
     const [location, setLocation] = useState(null)
@@ -59,8 +52,8 @@ const Map = () => {
                 ref={mapRef}
                 style={[styles.map, StyleSheet.absoluteFillObject]}
                 initialRegion={{
-                    latitude: location.latitude,
-                    longitude: location.longitude,
+                    latitude: 45.4948,
+                    longitude: -73.5772,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
                 }}
@@ -70,13 +63,16 @@ const Map = () => {
                 showsMyLocationButton={true}
                 zoomControlEnabled={true}
             >
-                {STATIC_MARKERS.map((marker) => (
+                {CONCORDIA_BUILDINGS.map((building) => (
                     <Marker
-                        key={marker.id}
-                        coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
-                        title={marker.title}
-                        description={marker.description}
-                    />
+                        key={building.name}
+                        coordinate={{ latitude: building.latitude, longitude: building.longitude }}
+                        title={building.name}
+                    >
+                        <View style={styles.buildingMarker}>
+                            <View style={styles.buildingMarkerInner} />
+                        </View>
+                    </Marker>
                 ))}
                 {incidents
                     .filter((i) => i.latitude && i.longitude)
@@ -117,5 +113,21 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 18,
         textAlign: 'center',
+    },
+    buildingMarker: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: '#e74c3c',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#e74c3c',
+    },
+    buildingMarkerInner: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#fff',
     },
 })

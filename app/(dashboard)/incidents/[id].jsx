@@ -10,6 +10,7 @@ import ThemedCard from "../../../components/ThemedCard";
 import ThemedLoader from "../../../components/ThemedLoader";
 import {Colors} from "../../../constants/Colors";
 import {useIncidents} from "../../../hooks/useIncidents";
+import {getNearestBuilding} from "../../../lib/getNearestBuilding";
 
 const IncidentDetails = () => {
     const [ incident, setIncident ] = useState(null);
@@ -35,7 +36,11 @@ const IncidentDetails = () => {
     return (
         <ThemedView safe={true} style={styles.container}>
             <ThemedCard style={styles.card}>
-                <ThemedText>Location: {incident.location}</ThemedText>
+                <ThemedText style={styles.location}>
+                    📍 {incident.latitude && incident.longitude
+                    ? getNearestBuilding(incident.latitude, incident.longitude)
+                    : 'Unknown location'}
+                </ThemedText>
                 <Spacer/>
                 <ThemedText title={true}>Incident description:</ThemedText>
                 <Spacer height={10}/>

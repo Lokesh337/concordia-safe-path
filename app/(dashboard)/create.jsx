@@ -90,10 +90,10 @@ const Create = () => {
                             <MapView
                                 style={styles.map}
                                 initialRegion={{
-                                    latitude: userCoords.latitude,
-                                    longitude: userCoords.longitude,
-                                    latitudeDelta: 0.005,
-                                    longitudeDelta: 0.005,
+                                    latitude: 45.4948,
+                                    longitude: -73.5772,
+                                    latitudeDelta: 0.01,
+                                    longitudeDelta: 0.01,
                                 }}
                                 showsUserLocation={true}
                                 showsPointsOfInterest={false}
@@ -253,7 +253,6 @@ const styles = StyleSheet.create({
     severityContainer: {
         flexDirection: 'row',
         alignSelf: 'center',
-        // marginHorizontal: 40,
         borderRadius: 30,
         overflow: 'hidden',
         height: 44,
