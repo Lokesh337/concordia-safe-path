@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     },
     overlay: {
         flex: 1,
-        backgroundColor: '#00000066',
+        backgroundColor: Colors.overlay,
     },
 
     actionsContainer: {

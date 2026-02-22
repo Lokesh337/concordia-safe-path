@@ -10,7 +10,7 @@ import ThemedCard from "../../../components/ThemedCard";
 import ThemedLoader from "../../../components/ThemedLoader";
 import {Colors} from "../../../constants/Colors";
 import {useIncidents} from "../../../hooks/useIncidents";
-import {getNearestBuilding} from "../../../lib/getNearestBuilding";
+import {getNearestBuilding} from "../../../lib/helpers";
 
 const IncidentDetails = () => {
     const [ incident, setIncident ] = useState(null);

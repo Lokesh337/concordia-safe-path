@@ -21,10 +21,13 @@ import ThemedText from "../../components/ThemedText"
 import ThemedTextInput from "../../components/ThemedTextInput"
 import ThemedButton from '../../components/ThemedButton'
 import Spacer from '../../components/Spacer'
-import {useIncidents} from "../../hooks/useIncidents";
-import ThemedDropdown from "../../components/ThemedDropdown";
 import ThemedLoader from "../../components/ThemedLoader";
 import IncidentTypeModal from '../../components/modals/IncidentTypeModal'
+
+//hooks
+import {useIncidents} from "../../hooks/useIncidents";
+
+//Constants
 import {Colors} from "../../constants/Colors";
 
 const Create = () => {
@@ -133,24 +136,31 @@ const Create = () => {
                     <ThemedText style={styles.label}>Set Severity</ThemedText>
                     <View style={styles.severityContainer}>
                         {[
-                            { value: 'high',   label: 'High',   color: '#ff6b6b' },
-                            { value: 'medium', label: 'Medium', color: '#ffd93d' },
-                            { value: 'low',    label: 'Low',    color: '#6bcb77' },
+                            { value: 'high',   label: 'High' },
+                            { value: 'medium', label: 'Medium' },
+                            { value: 'low',    label: 'Low' },
                         ].map((s, index) => (
                             <Pressable
                                 key={s.value}
                                 onPress={() => setSeverity(s.value)}
                                 style={[
                                     styles.severitySegment,
-                                    { backgroundColor: s.color },
+                                    { backgroundColor: Colors.severity[s.value] },
                                     severity === s.value && styles.severitySelected,
                                     index === 0 && styles.severityLeft,
                                     index === 2 && styles.severityRight,
                                 ]}
                             >
                                 <Text style={[
-                                    styles.severityText,
-                                    severity === s.value && { color: '#000' }
+                                    // severityText style in StyleSheet
+                                    {
+                                        severityText: {
+                                            color: Colors.white,
+                                            fontWeight: 'bold',
+                                            fontSize: 14,
+                                        }
+                                    },
+                                    severity === s.value && { color: Colors.black }
                                 ]}>
                                     {s.label}
                                 </Text>
@@ -229,8 +239,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         marginLeft: 20,
         marginBottom: 6,
-        // fontWeight: '600',
-        fontsize:13
+        fontSize: 13,
     },
     mapContainer: {
         width: '90%',

@@ -1,44 +1,22 @@
 import { StyleSheet } from "react-native";
-import {useIncidents} from "../hooks/useIncidents";
-import {useRouter} from "expo-router";
-import {useState} from "react";
 import {Pressable, View} from "react-native";
-import ThemedText from "./ThemedText";
-import {Ionicons} from "@expo/vector-icons";
-import ThemedCard from "./ThemedCard";
+import {Ionicons} from "@expo/vector-icons"
+
+// Constants
 import {Colors} from "../constants/Colors";
-import {getNearestBuilding} from "../lib/getNearestBuilding";
-
-const TYPE_COLORS = {
-    protest: '#e74c3c',
-    construction: '#f39c12',
-    blockade: '#27ae60',
-    vandalism: '#8e44ad',
-    emergency: '#cc475a',
-}
-
-const TYPE_ICONS = {
-    protest: 'megaphone',
-    construction: 'construct',
-    blockade: 'ban',
-    vandalism: 'hammer',
-    emergency: 'alert-circle',
-}
-
-function timeAgo(dateStr) {
-    const diff = Date.now() - new Date(dateStr).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 60) return `${mins} min ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24) return `${hrs}hr ago`
-    return `${Math.floor(hrs / 24)}d ago`
-}
+import {Icons} from "../constants/Icons";
+// Themed components
+import ThemedText from "./ThemedText";
+import ThemedCard from "./ThemedCard";
+//functions
+import {getNearestBuilding} from "../lib/helpers";
+import {timeAgo} from "../lib/helpers";
 
 const IncidentCard = ({ item, onPress }) => (
     <Pressable onPress={onPress}>
-        <ThemedCard style={[styles.card, { borderLeftWidth: 4, borderLeftColor: Colors.SEVERITY_COLORS[item.severity] }]}>
-            <View style={[styles.iconBox, { backgroundColor: TYPE_COLORS[item.type] ?? '#888' }]}>
-                <Ionicons name={TYPE_ICONS[item.type] ?? 'alert-circle'} size={28} color="#fff" />
+        <ThemedCard style={[styles.card, { borderLeftWidth: 4, borderLeftColor: Colors.severity[item.severity] }]}>
+            <View style={[styles.iconBox, { backgroundColor: Colors.type[item.type] ?? '#888' }]}>
+                <Ionicons name={Icons.type[item.type] ?? 'alert-circle'} size={28} color="#fff" />
             </View>
 
             <View style={styles.cardContent}>
@@ -63,21 +41,20 @@ const IncidentCard = ({ item, onPress }) => (
                 </ThemedText>
 
 
-                {/* Bottom row with badge on right */}
                 <View style={styles.bottomRow}>
                     <View style={{ flex: 1 }} />
-                    <View style={[styles.badgePill, { backgroundColor: item.verified ? '#27ae6022' : '#4a90e222' }]}>
-                        {item.status === 'resolved' && (
-                            <View style={[styles.badgePill, { backgroundColor: '#62626222' }]}>
-                                <Ionicons name="checkmark-done-outline" size={14} color="#626262" />
-                                <ThemedText style={[styles.badgeText, { color: '#626262' }]}>Resolved</ThemedText>
-                            </View>
-                        )}
+                    {item.status === 'resolved' && (
+                        <View style={[styles.badgePill, { backgroundColor: Colors.badge.resolvedBg }]}>
+                            <Ionicons name="checkmark-done-outline" size={14} color={Colors.badge.resolved} />
+                            <ThemedText style={[styles.badgeText, { color: Colors.badge.resolved }]}>Resolved</ThemedText>
+                        </View>
+                    )}
+                    <View style={[styles.badgePill, { backgroundColor: item.verified ? Colors.badge.verifiedBg : Colors.badge.reportedBg }]}>
                         {item.verified
-                            ? <Ionicons name="checkmark-circle" size={14} color="#27ae60" />
-                            : <Ionicons name="time-outline" size={14} color="#4a90e2" />
+                            ? <Ionicons name="checkmark-circle" size={14} color={Colors.badge.verified} />
+                            : <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
                         }
-                        <ThemedText style={[styles.badgeText, { color: item.verified ? '#27ae60' : '#4a90e2' }]}>
+                        <ThemedText style={[styles.badgeText, { color: item.verified ? Colors.badge.verified : Colors.badge.reported }]}>
                             {item.verified ? 'Verified by Campus' : `Reported by ${item.upvotes + 1}`}
                         </ThemedText>
                     </View>
@@ -102,50 +79,6 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         alignItems: 'center',
         marginTop: 4,
-    },
-    filters: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        gap: 8,
-    },
-    filterLabel: {
-        fontSize: 14,
-        opacity: 0.6,
-        marginRight: 4,
-    },
-    filterPill: {
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1.5,
-    },
-    filterText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    list: {
-        paddingHorizontal: 16,
-        paddingBottom: 20,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 10,
-    },
-    dot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: Colors.primary,
-    },
-    sectionTitle: {
-        fontWeight: 'bold',
-        fontSize: 13,
-        opacity: 0.7,
-        letterSpacing: 0.5,
     },
     card: {
         flexDirection: 'row',
@@ -192,19 +125,9 @@ const styles = StyleSheet.create({
         fontSize: 13,
         opacity: 0.7,
     },
-    badge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 2,
-    },
+
     badgeText: {
         fontSize: 12,
         fontWeight: '500',
-    },
-    empty: {
-        textAlign: 'center',
-        marginTop: 60,
-        opacity: 0.5,
     },
 })

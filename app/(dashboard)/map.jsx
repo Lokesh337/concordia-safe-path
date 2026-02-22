@@ -8,6 +8,7 @@ import {CONCORDIA_BUILDINGS} from "../../constants/Buildings";
 import ThemedView from '../../components/ThemedView'
 import ThemedText from '../../components/ThemedText'
 import ThemedLoader from '../../components/ThemedLoader'
+import {Colors} from "../../constants/Colors";
 
 
 const Map = () => {
@@ -82,11 +83,8 @@ const Map = () => {
                             coordinate={{ latitude: incident.latitude, longitude: incident.longitude }}
                             title={incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
                             description={incident.location}
-                            pinColor={
-                                incident.severity === 'high' ? '#cc475a' :
-                                    incident.severity === 'medium' ? '#ff9800' :
-                                        '#4caf50'
-                            }
+                            pinColor={Colors.severity[incident.severity]}
+
                         />
                     ))
                 }
@@ -109,25 +107,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    heading: {
-        fontWeight: 'bold',
-        fontSize: 18,
-        textAlign: 'center',
-    },
     buildingMarker: {
         width: 16,
         height: 16,
         borderRadius: 8,
-        backgroundColor: '#e74c3c',
+        backgroundColor: Colors.marker.building,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: '#e74c3c',
+        borderColor: Colors.marker.building,
     },
     buildingMarkerInner: {
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.marker.buildingInner,
     },
 })

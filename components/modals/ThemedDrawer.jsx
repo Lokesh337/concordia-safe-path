@@ -30,7 +30,7 @@ const ThemedDrawer = ({ visible, onClose }) => {
     return (
         <Modal visible={visible} transparent>
             <TouchableWithoutFeedback onPress={onClose}>
-                <View style={{ flex: 1, backgroundColor: '#00000066' }}>
+                <View style={{ flex: 1, backgroundColor: Colors.overlay }}>
                     <TouchableWithoutFeedback>
                         <View style={{ width: 300, height: '100%', backgroundColor: theme.navBackground }}>
                             {/* Avatar */}
@@ -110,8 +110,7 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     divider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: '#ffffff33',
+        backgroundColor: Colors.divider,
         marginVertical: 10,
     },
     item: {
