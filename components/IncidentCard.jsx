@@ -1,25 +1,48 @@
-import { StyleSheet } from "react-native";
-import {Pressable, View} from "react-native";
-import {Ionicons} from "@expo/vector-icons"
+/**
+ * Displays a single incident as a pressable card in the incidents list.
+ *
+ * Props:
+ *  - item    {object}   — Incident row from Supabase.
+ *  - onPress {function} — Called when the card is tapped.
+ *
+ * Verification badge logic (Goal 3):
+ *  - item.verified = true  → "Verified by Campus" (green, checkmark icon)
+ *  - item.verified = false → "Reported by X" where X = upvotes + 1
+ *                            (+1 counts the original reporter)
+ **
+ * TODO (Goal 3): Add upvote button directly on the card
+ * TODO (Goal 4): Add the verification progress stages
+ *                (Submitted → Reviewing → Verified by users → Verified by campus)
+ */
+
+import { StyleSheet, Pressable, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons"
 
 // Constants
-import {Colors} from "../constants/Colors";
-import {Icons} from "../constants/Icons";
+import { Colors } from "../constants/Colors";
+import { Icons } from "../constants/Icons";
+
 // Themed components
 import ThemedText from "./ThemedText";
 import ThemedCard from "./ThemedCard";
-//functions
-import {getNearestBuilding} from "../lib/helpers";
-import {timeAgo} from "../lib/helpers";
+
+// Helpers
+import { getNearestBuilding, timeAgo } from "../lib/helpers";
 
 const IncidentCard = ({ item, onPress }) => (
     <Pressable onPress={onPress}>
+        {/* Left border color = severity level (red / orange / green) */}
         <ThemedCard style={[styles.card, { borderLeftWidth: 4, borderLeftColor: Colors.severity[item.severity] }]}>
+
+            {/* Icon box — background color encodes incident type */}
             <View style={[styles.iconBox, { backgroundColor: Colors.type[item.type] ?? '#888' }]}>
+                {/* Falls back to 'alert-circle' icon if the type isn't in Icons.type */}
                 <Ionicons name={Icons.type[item.type] ?? 'alert-circle'} size={28} color="#fff" />
             </View>
 
             <View style={styles.cardContent}>
+
+                {/* Row: incident type (title) + relative timestamp */}
                 <View style={styles.cardHeader}>
                     <ThemedText style={styles.cardTitle}>
                         {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
@@ -27,6 +50,7 @@ const IncidentCard = ({ item, onPress }) => (
                     <ThemedText style={styles.cardTime}>{timeAgo(item.created_at)}</ThemedText>
                 </View>
 
+                {/* Nearest building derived from coordinates (approximate) */}
                 <View style={styles.locationRow}>
                     <Ionicons name="location" size={12} color={Colors.primary} />
                     <ThemedText style={styles.location}>
@@ -36,50 +60,46 @@ const IncidentCard = ({ item, onPress }) => (
                     </ThemedText>
                 </View>
 
+                {/* Description — clamped to 2 lines to keep cards uniform height */}
                 <ThemedText style={styles.description} numberOfLines={2}>
                     {item.description}
                 </ThemedText>
 
-
+                {/* Bottom badge row */}
                 <View style={styles.bottomRow}>
                     <View style={{ flex: 1 }} />
+
+                    {/* "Resolved" badge — only shown when status is resolved */}
                     {item.status === 'resolved' && (
                         <View style={[styles.badgePill, { backgroundColor: Colors.badge.resolvedBg }]}>
                             <Ionicons name="checkmark-done-outline" size={14} color={Colors.badge.resolved} />
                             <ThemedText style={[styles.badgeText, { color: Colors.badge.resolved }]}>Resolved</ThemedText>
                         </View>
                     )}
+
+                    {/* Verification badge — "Verified by Campus" OR "Reported by X" */}
                     <View style={[styles.badgePill, { backgroundColor: item.verified ? Colors.badge.verifiedBg : Colors.badge.reportedBg }]}>
                         {item.verified
                             ? <Ionicons name="checkmark-circle" size={14} color={Colors.badge.verified} />
                             : <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
                         }
                         <ThemedText style={[styles.badgeText, { color: item.verified ? Colors.badge.verified : Colors.badge.reported }]}>
-                            {item.verified ? 'Verified by Campus' : `Reported by ${item.upvotes + 1}`}
+                            {item.verified
+                                ? 'Verified by Campus'
+                                : `Reported by ${item.upvotes + 1}`  // +1 = the original reporter
+                            }
                         </ThemedText>
                     </View>
                 </View>
+
             </View>
         </ThemedCard>
     </Pressable>
 )
+
 export default IncidentCard
 
 const styles = StyleSheet.create({
-    badgePill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 20,
-    },
-    bottomRow: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        marginTop: 4,
-    },
     card: {
         flexDirection: 'row',
         gap: 12,
@@ -93,7 +113,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        flexShrink: 0,
+        flexShrink: 0, // don't shrink if description text is long
     },
     cardContent: {
         flex: 1,
@@ -125,7 +145,20 @@ const styles = StyleSheet.create({
         fontSize: 13,
         opacity: 0.7,
     },
-
+    bottomRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    badgePill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 20,
+    },
     badgeText: {
         fontSize: 12,
         fontWeight: '500',

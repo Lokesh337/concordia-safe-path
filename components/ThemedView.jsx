@@ -1,18 +1,38 @@
-import { useColorScheme, View} from "react-native";
-import {Colors} from '../constants/Colors'
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+/**
+ * A theme-aware drop-in replacement for React Native's <View>.
+ *
+ * Automatically applies the correct background color for the current
+ * light/dark color scheme. Accepts all standard <View> props via spread.
+ *
+ * Props:
+ *  - safe {boolean} Default: false
+ *      false → plain themed View, no safe area padding (use for inner layouts)
+ *      true  → adds top/bottom padding equal to the device's safe area insets
+ *               (use for root screen containers to avoid content going under
+ *               the notch, status bar, or home indicator)
+ *  - style — merged after background and safe area styles, so callers can override
+ */
 
-const ThemedView = ({style, safe = false, ...props}) => {
+import { useColorScheme, View } from "react-native";
+import { Colors } from '../constants/Colors'
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const ThemedView = ({ style, safe = false, ...props }) => {
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme] ?? Colors.light;
+
+    // Always call the hook
     const insets = useSafeAreaInsets()
 
     if (!safe) return (
         <View
-            style={[{backgroundColor: theme.background}, style]}
+            style={[{ backgroundColor: theme.background }, style]}
             {...props}
         />
     )
+
+    // safe=true: pad top and bottom to respect the device's safe area
+    // (status bar / notch on top, home indicator on bottom)
     return (
         <View
             style={[{
@@ -26,4 +46,5 @@ const ThemedView = ({style, safe = false, ...props}) => {
         />
     )
 }
+
 export default ThemedView;

@@ -1,21 +1,46 @@
+/**
+ * A bottom-sheet style modal for selecting an incident type before reporting.
+ *
+ * Renders a 2-column grid of icon + label tiles, one per incident type
+ * defined in constants/Icons.js (INCIDENT_TYPES). Tapping a tile calls
+ * onSelect with the type value and the parent is responsible for closing
+ * the modal.
+ *
+ * Props:
+ *  - visible  {boolean}  — Controls modal visibility (controlled component).
+ *  - onClose  {function} — Called when the user dismisses without selecting.
+ *  - onSelect {function} — Called with the selected type string (e.g. 'protest').
+ *
+ * TODO (Goal 7): Add accessibility labels to each tile for screen readers.
+ */
+
 import { View, Modal, TouchableWithoutFeedback, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../../constants/Colors'
 import ThemedText from './../ThemedText'
-import {Icons, INCIDENT_TYPES} from "../../constants/Icons";
+import { Icons, INCIDENT_TYPES } from "../../constants/Icons";
 
 const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
     const colorScheme = useColorScheme()
     const theme = Colors[colorScheme] ?? Colors.light
 
     return (
+        // animationType="fade" gives a smooth appear/disappear transition
         <Modal visible={visible} transparent animationType="fade">
+
+            {/* Outer overlay — tapping here dismisses the modal */}
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.overlay}>
+
+                    {/* Inner panel — stops touch propagation so tapping the
+                        panel doesn't bubble up and trigger onClose */}
                     <TouchableWithoutFeedback>
                         <View style={[styles.container, { backgroundColor: theme.navBackground }]}>
-                            <ThemedText title={true} style={styles.heading}>Select the Type of Incident</ThemedText>
+                            <ThemedText title={true} style={styles.heading}>
+                                Select the Type of Incident
+                            </ThemedText>
 
+                            {/* 2-column grid of incident type tiles */}
                             <View style={styles.grid}>
                                 {INCIDENT_TYPES.map((type) => (
                                     <TouchableOpacity
@@ -23,8 +48,13 @@ const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
                                         style={styles.item}
                                         onPress={() => onSelect(type.value)}
                                     >
+                                        {/* Colored icon box — color keyed by incident type */}
                                         <View style={[styles.iconBox, { backgroundColor: Colors.type[type.value] }]}>
-                                            <Ionicons name={Icons.type[type.value]} size={36} color={Colors.white} />
+                                            <Ionicons
+                                                name={Icons.type[type.value]}
+                                                size={36}
+                                                color={Colors.white}
+                                            />
                                         </View>
                                         <ThemedText style={styles.label}>{type.label}</ThemedText>
                                     </TouchableOpacity>
@@ -32,6 +62,7 @@ const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
                             </View>
                         </View>
                     </TouchableWithoutFeedback>
+
                 </View>
             </TouchableWithoutFeedback>
         </Modal>
@@ -41,22 +72,25 @@ const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
 export default IncidentTypeModal
 
 const styles = StyleSheet.create({
+    // Semi-transparent full-screen backdrop, anchored to the bottom
     overlay: {
         flex: 1,
         backgroundColor: Colors.overlay,
-        justifyContent: 'flex-end',
+        justifyContent: 'flex-end', // panel slides up from the bottom
     },
+    // The visible bottom sheet panel
     container: {
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 24,
-        paddingBottom: 40,
+        paddingBottom: 40, // extra bottom padding for home indicator clearance
     },
     heading: {
         fontSize: 20,
         fontWeight: 'bold',
         marginBottom: 24,
     },
+    // Two columns, wrapping onto new rows as needed
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -64,7 +98,7 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     item: {
-        width: '45%',
+        width: '45%',  // ~2 per row with gap
         alignItems: 'center',
         gap: 10,
     },
