@@ -14,12 +14,6 @@ const Incidents = () => {
 
     return (
         <ThemedView style={styles.container} safe={true}>
-
-            <ThemedText title={true} style={styles.heading}>
-                Incidents list
-            </ThemedText>
-
-            <Spacer height={20}/>
             <FlatList
                 data={incidents}
                 keyExtractor={(item) => item.id}

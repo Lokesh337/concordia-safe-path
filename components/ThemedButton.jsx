@@ -1,15 +1,21 @@
-import {Pressable, StyleSheet} from "react-native";
-import {Colors} from "../constants/Colors";
+import { Pressable, StyleSheet } from "react-native"
+import { Colors } from "../constants/Colors"
 
-
-const ThemedButton = ({style, ...props}) => {
+const ThemedButton = ({ style, disabled, ...props }) => {
     return (
         <Pressable
-            style={({pressed}) => [styles.btn, pressed && styles.pressed, style]}
+            disabled={disabled}
+            style={({ pressed }) => [
+                styles.btn,
+                pressed && !disabled && styles.pressed,
+                disabled && styles.disabled,
+                style
+            ]}
             {...props}
         />
     )
 }
+
 export default ThemedButton
 
 const styles = StyleSheet.create({
@@ -21,5 +27,8 @@ const styles = StyleSheet.create({
     },
     pressed: {
         opacity: 0.5
+    },
+    disabled: {
+        backgroundColor: '#aaa',
     }
 })

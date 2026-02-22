@@ -1,9 +1,19 @@
-import { StyleSheet, Text, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native'
+import {
+    StyleSheet,
+    Text,
+    TouchableWithoutFeedback,
+    Keyboard,
+    ScrollView,
+    Pressable,
+    useColorScheme,
+    View
+} from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 
 import { useEffect, useState } from 'react'
 import MapView, { Marker } from 'react-native-maps'
 import * as Location from 'expo-location'
+import {Ionicons} from "@expo/vector-icons";
 
 // themed components
 import ThemedView from "../../components/ThemedView"
@@ -14,24 +24,17 @@ import Spacer from '../../components/Spacer'
 import {useIncidents} from "../../hooks/useIncidents";
 import ThemedDropdown from "../../components/ThemedDropdown";
 import ThemedLoader from "../../components/ThemedLoader";
-
-const SEVERITY_OPTIONS = [
-    { label: '🟢 Low',    value: 'low' },
-    { label: '🟠 Medium', value: 'medium' },
-    { label: '🔴 High',   value: 'high' },
-]
-
-const TYPE_OPTIONS = [
-    { label: '✊ Protest',      value: 'protest' },
-    { label: '🚧 Construction', value: 'construction' },
-    { label: '🚨 Emergency',    value: 'emergency' },
-]
+import IncidentTypeModal from '../../components/modals/IncidentTypeModal'
+import {Colors} from "../../constants/Colors";
 
 const Create = () => {
     const { type: initialType } = useLocalSearchParams()
+    const [typeModalOpen, setTypeModalOpen] = useState(false)
+    const colorScheme = useColorScheme();
+    const theme = Colors[colorScheme] ?? Colors.light;
 
     const [type, setType] = useState(initialType || '')
-    const [severity, setSeverity] = useState("")
+    const [severity, setSeverity] = useState('low')
     const [description, setDescription] = useState("")
 
 
@@ -74,43 +77,10 @@ const Create = () => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView contentContainerStyle={styles.scroll}>
                 <ThemedView style={styles.container}>
-                    <Spacer height={20}/>
-                    <ThemedText title={true} style={styles.heading}>
-                        Report an Incident
-                    </ThemedText>
                     <Spacer height={10}/>
-
-                    <ThemedDropdown
-                        style={styles.input}
-                        placeholder="Incident Type"
-                        value={type}
-                        options={TYPE_OPTIONS}
-                        onSelect={setType}
-                    />
-
-                    <Spacer height={10}/>
-
-                    <ThemedDropdown
-                        style={styles.input}
-                        placeholder="Incident Severity"
-                        value={severity}
-                        options={SEVERITY_OPTIONS}
-                        onSelect={setSeverity}
-                    />
-                    <Spacer height={10}/>
-
-                    <ThemedTextInput
-                        style={styles.multiline}
-                        placeholder="Incident Description"
-                        value={description}
-                        onChangeText={setDescription}
-                        multiline={true}
-                    />
-
-                    <Spacer height={6} />
                     {pin
                         ? <ThemedText style={styles.pinConfirm}>📍 Pin placed</ThemedText>
-                        : <ThemedText style={styles.pinHint}>Tap the map to place a pin</ThemedText>
+                        : <ThemedText style={styles.pinHint}>Select the location</ThemedText>
                     }
                     <Spacer height={6} />
 
@@ -145,11 +115,79 @@ const Create = () => {
                         )}
                     </ThemedView>
 
-                    <ThemedButton onPress={handleSubmit} disabled={loading || !pin}>
-                        <Text style={{ color: '#fff' }}>
-                            {loading ? "Saving..." : !pin ? "Drop a Pin First" : "Report Incident"}
+                    <Spacer height={10}/>
+
+                    <Pressable
+                        style={[styles.input, { backgroundColor: theme.uiBackground, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+                        onPress={() => setTypeModalOpen(true)}
+                    >
+                        <ThemedText style={!type && { opacity: 0.4 }}>
+                            {type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Incident Type'}
+                        </ThemedText>
+                        <Ionicons name="chevron-down" size={18} color={theme.text} />
+                    </Pressable>
+
+                    <Spacer height={10}/>
+
+
+                    <ThemedText style={styles.label}>Set Severity</ThemedText>
+                    <View style={styles.severityContainer}>
+                        {[
+                            { value: 'high',   label: 'High',   color: '#ff6b6b' },
+                            { value: 'medium', label: 'Medium', color: '#ffd93d' },
+                            { value: 'low',    label: 'Low',    color: '#6bcb77' },
+                        ].map((s, index) => (
+                            <Pressable
+                                key={s.value}
+                                onPress={() => setSeverity(s.value)}
+                                style={[
+                                    styles.severitySegment,
+                                    { backgroundColor: s.color },
+                                    severity === s.value && styles.severitySelected,
+                                    index === 0 && styles.severityLeft,
+                                    index === 2 && styles.severityRight,
+                                ]}
+                            >
+                                <Text style={[
+                                    styles.severityText,
+                                    severity === s.value && { color: '#000' }
+                                ]}>
+                                    {s.label}
+                                </Text>
+                            </Pressable>
+                        ))}
+                    </View>
+
+                    <Spacer height={10}/>
+                    <ThemedTextInput
+                        style={styles.multiline}
+                        placeholder="Write a short description of the incident"
+                        value={description}
+                        onChangeText={setDescription}
+                        multiline={true}
+                    />
+
+                    <ThemedButton
+                        onPress={handleSubmit}
+                        disabled={ loading || !pin || !description.trim() }
+                        style={{ alignSelf: 'stretch', marginHorizontal: 40 }}
+                    >
+                        <Text style={{ color: '#fff', alignSelf: 'center' }}>
+                            {loading ? "Saving..."
+                                : !pin ? "Drop a Pin First!"
+                                : !description.trim() ? "Add a Description!"
+                                : "Submit Incident"}
                         </Text>
                     </ThemedButton>
+
+                    <IncidentTypeModal
+                        visible={typeModalOpen}
+                        onClose={() => setTypeModalOpen(false)}
+                        onSelect={(selected) => {
+                            setType(selected)
+                            setTypeModalOpen(false)
+                        }}
+                    />
 
                 </ThemedView>
             </ScrollView>
@@ -172,25 +210,27 @@ const styles = StyleSheet.create({
     input: {
         padding: 20,
         borderRadius: 6,
-        alignSelf: 'stretch',
-        marginHorizontal: 40,
+        alignSelf: 'center',
+        marginHorizontal: 0,
+        width: '90%'
     },
     multiline: {
         padding: 20,
         borderRadius: 6,
-        minHeight: 100,
-        alignSelf: 'stretch',
-        marginHorizontal: 40,
+        minHeight: 120,
+        alignSelf: 'center',
+        textAlignVertical: 'top',
+        width: '90%'
     },
     scroll: {
         flexGrow: 1,
     },
     label: {
         alignSelf: 'flex-start',
-        marginLeft: 40,
+        marginLeft: 20,
         marginBottom: 6,
-        fontWeight: '600',
-        opacity: 0.7,
+        // fontWeight: '600',
+        fontsize:13
     },
     mapContainer: {
         width: '90%',
@@ -204,11 +244,49 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
     },
     pinHint: {
-        opacity: 0.5,
         fontSize: 13,
     },
     pinConfirm: {
         color: '#4caf50',
         fontSize: 13,
+    },
+    severityContainer: {
+        flexDirection: 'row',
+        alignSelf: 'center',
+        // marginHorizontal: 40,
+        borderRadius: 30,
+        overflow: 'hidden',
+        height: 44,
+        width: '90%'
+    },
+    severitySegment: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        opacity: 0.8,   // unselected dimmed
+    },
+    severitySelected: {
+        opacity: 1,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        zIndex: 1,
+        borderWidth: 2,
+        borderColor: '#000',
+    },
+    severityLeft: {
+        borderTopLeftRadius: 30,
+        borderBottomLeftRadius: 30,
+    },
+    severityRight: {
+        borderTopRightRadius: 30,
+        borderBottomRightRadius: 30,
+    },
+    severityText: {
+        color: '#ddd',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
 })

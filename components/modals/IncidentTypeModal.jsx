@@ -4,11 +4,11 @@ import { Colors } from '../../constants/Colors'
 import ThemedText from './../ThemedText'
 
 const TYPES = [
-    { value: 'protest', label: 'Protest', icon: 'megaphone-outline' },
-    { value: 'construction', label: 'Construction', icon: 'construct-outline' },
-    { value: 'emergency', label: 'Emergency', icon: 'alert-circle-outline' },
+    { value: 'protest', label: 'Protest', icon: 'megaphone', color: '#e74c3c' },
+    { value: 'construction', label: 'Construction', icon: 'construct', color: '#f39c12' },
+    { value: 'blockade', label: 'Road Blockage', icon: 'ban', color: '#27ae60' },
+    { value: 'vandalism', label: 'Vandalism', icon: 'hammer', color: '#8e44ad' },
 ]
-
 const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
     const colorScheme = useColorScheme()
     const theme = Colors[colorScheme] ?? Colors.light
@@ -19,19 +19,22 @@ const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
                 <View style={styles.overlay}>
                     <TouchableWithoutFeedback>
                         <View style={[styles.container, { backgroundColor: theme.navBackground }]}>
-                            <ThemedText title={true} style={styles.heading}>What are you reporting?</ThemedText>
+                            <ThemedText title={true} style={styles.heading}>Select the Type of Incident</ThemedText>
 
-                            {TYPES.map((type) => (
-                                <TouchableOpacity
-                                    key={type.value}
-                                    style={[styles.card, { backgroundColor: theme.uiBackground }]}
-                                    onPress={() => onSelect(type.value)}
-                                >
-                                    <Ionicons name={type.icon} size={24} color={Colors.primary} />
-                                    <ThemedText style={styles.label}>{type.label}</ThemedText>
-                                    <Ionicons name="chevron-forward" size={18} color={theme.text} style={styles.arrow} />
-                                </TouchableOpacity>
-                            ))}
+                            <View style={styles.grid}>
+                                {TYPES.map((type) => (
+                                    <TouchableOpacity
+                                        key={type.value}
+                                        style={styles.item}
+                                        onPress={() => onSelect(type.value)}
+                                    >
+                                        <View style={[styles.iconBox, { backgroundColor: type.color }]}>
+                                            <Ionicons name={type.icon} size={36} color="#fff" />
+                                        </View>
+                                        <ThemedText style={styles.label}>{type.label}</ThemedText>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
                     </TouchableWithoutFeedback>
                 </View>
@@ -49,29 +52,36 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     container: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         padding: 24,
-        gap: 12,
+        paddingBottom: 40,
     },
     heading: {
-        fontSize: 16,
+        fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 8,
-        textAlign: 'center',
+        marginBottom: 24,
     },
-    card: {
+    grid: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: 16,
+    },
+    item: {
+        width: '45%',
         alignItems: 'center',
-        padding: 16,
-        borderRadius: 12,
-        gap: 14,
+        gap: 10,
+    },
+    iconBox: {
+        width: 80,
+        height: 80,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     label: {
-        fontSize: 16,
-        flex: 1,
-    },
-    arrow: {
-        opacity: 0.4,
+        fontSize: 14,
+        textAlign: 'center',
     },
 })

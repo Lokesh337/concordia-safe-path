@@ -2,10 +2,22 @@ import {TouchableOpacity, View, StyleSheet, useColorScheme} from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import {Colors} from "../constants/Colors";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import ThemedDrawer from './ThemedDrawer'
+import ThemedDrawer from './modals/ThemedDrawer'
 import {useState} from "react";
-import {useRouter} from "expo-router";
+import {usePathname, useRouter} from "expo-router";
+import ThemedText from "./ThemedText";
 
+const PAGE_TITLES = {
+    '/incidents': 'Incidents',
+    '/map': 'Campus Map',
+    '/profile': 'Profile',
+    '/notifications': 'Notifications',
+    '/create': 'Report Incident',
+    '/menu/preferences': 'Preferences',
+    '/menu/resources': 'Emergency Resources',
+    '/menu/profile': 'Profile',
+    '/routes': 'Safe Routes',
+}
 
 const ThemedHeader = () => {
     const colorScheme = useColorScheme()
@@ -14,12 +26,16 @@ const ThemedHeader = () => {
 
     const theme = Colors[colorScheme] ?? Colors.light
     const router = useRouter()
+    const pathname = usePathname()
+
+    const title = PAGE_TITLES[pathname] ??
+        (pathname.startsWith('/incidents/') ? 'Incident Detail' : '');
     return (
         <View style={[
             styles.header,
             {
-                // backgroundColor: theme.navBackground,
-                backgroundColor: 'blue',
+                backgroundColor: theme.navBackground,
+                // backgroundColor: 'blue',
                 paddingTop: insets.top + 10,
                 // paddingBottom: 10,
             }
@@ -29,7 +45,7 @@ const ThemedHeader = () => {
             </TouchableOpacity>
             <ThemedDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
-            {/*<ThemedText title={true} style={styles.headerTitle}>CSP</ThemedText>*/}
+            <ThemedText title={true} style={styles.headerTitle}>{title}</ThemedText>
 
             <TouchableOpacity onPress={() => router.push('/notifications')}>
                 <Ionicons name="notifications-outline" size={26} color={theme.title} />
@@ -52,6 +68,6 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        letterSpacing: 2,
+        letterSpacing: 1,
     },
 })

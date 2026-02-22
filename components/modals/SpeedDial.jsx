@@ -1,6 +1,6 @@
 import {View, TouchableOpacity, StyleSheet, useColorScheme, TouchableWithoutFeedback, Modal} from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Colors } from '../constants/Colors'
+import { Colors } from '../../constants/Colors'
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useState} from "react";
 import {useRouter} from "expo-router";
@@ -19,6 +19,11 @@ const SpeedDial = ({ paddingTop = 0 }) => {
         router.push('/menu/resources')
     }
 
+    function safeRouteNow() {
+        setOpen(false)
+        router.push('/routes')
+    }
+
     return (
         <>
             <Modal visible={open} transparent animationType="fade">
@@ -26,9 +31,9 @@ const SpeedDial = ({ paddingTop = 0 }) => {
                     <View style={styles.overlay} />
                 </TouchableWithoutFeedback>
                 {/* Action buttons */}
-                <View style={[styles.actionsContainer, { bottom: insets.bottom - paddingTop + 20 }]}>
+                <View style={[styles.actionsContainer, { bottom: insets.bottom - paddingTop + 20 }]} >
                     {/* Left - lowest */}
-                    <TouchableOpacity style={[styles.actionButton, { marginBottom: 15 }]}>
+                    <TouchableOpacity style={[styles.actionButton, { marginBottom: 15 }]} onPress={safeRouteNow}>
                         <Ionicons name="navigate-outline" size={30} color="#fff" />
                     </TouchableOpacity>
 

@@ -5,7 +5,7 @@ import { Ionicons} from "@expo/vector-icons";
 import UserOnly from "../../components/auth/UserOnly";
 import ThemedHeader from "../../components/ThemedHeader";
 import ThemedView from "../../components/ThemedView";
-import SpeedDial from "../../components/SpeedDial";
+import SpeedDial from "../../components/modals/SpeedDial";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import IncidentTypeModal from "../../components/modals/IncidentTypeModal";
 import {useState} from "react";
@@ -30,22 +30,12 @@ export default function DashboardLayout() {
                 <Tabs
                     screenOptions={{
                         headerShown: false,
-                        tabBarStyle: { backgroundColor: 'blue', paddingTop: TAB_BAR_PADDING_TOP, height: insets.bottom + 65},
-                        // tabBarStyle: { backgroundColor: theme.navBackground, paddingTop: 10, height: 100 },
+                        // tabBarStyle: { backgroundColor: 'blue', paddingTop: TAB_BAR_PADDING_TOP, height: insets.bottom + 65},
+                        tabBarStyle: { backgroundColor: theme.navBackground, paddingTop: 10, height: 100 },
                         tabBarActiveTintColor: theme.iconColorFocused,
                         tabBarInactiveTintColor: theme.iconColor,
                     }}
                 >
-                    {/*<Tabs.Screen*/}
-                    {/*    name="profile"*/}
-                    {/*    options={{ title: "Profile", tabBarIcon: ({focused}) => (*/}
-                    {/*            <Ionicons*/}
-                    {/*                size={24}*/}
-                    {/*                name={focused ? 'person': 'person-outline'}*/}
-                    {/*                color={focused ? theme.iconColorFocused : theme.iconColor}*/}
-                    {/*            />*/}
-                    {/*        ) }}*/}
-                    {/*/>*/}
                     <Tabs.Screen
                         name="incidents"
                         options={{
@@ -53,8 +43,8 @@ export default function DashboardLayout() {
                             tabBarItemStyle: { paddingRight: 30 },
                             tabBarIcon: ({focused}) => (
                                 <Ionicons
-                                    size={24}
-                                    name={focused ? 'book': 'book-outline'}
+                                    size={30}
+                                    name={focused ? 'list': 'list-outline'}
                                     color={focused ? theme.iconColorFocused : theme.iconColor}
                                 />
                             ) }}
@@ -67,7 +57,7 @@ export default function DashboardLayout() {
                             tabBarItemStyle: { paddingLeft: 30 },
                             tabBarIcon: ({ focused }) => (
                                 <Ionicons
-                                    size={24}
+                                    size={30}
                                     name={focused ? 'map' : 'map-outline'}
                                     color={focused ? theme.iconColorFocused : theme.iconColor}
                                 />
@@ -98,7 +88,12 @@ export default function DashboardLayout() {
                         name="notifications"
                         options={{ href: null }}
                     />
+                    <Tabs.Screen
+                        name="routes"
+                        options={{ href: null }}
+                    />
                 </Tabs>
+
                 <SpeedDial paddingTop={TAB_BAR_PADDING_TOP}/>
                 <IncidentTypeModal
                     visible={typeModalOpen}
@@ -110,20 +105,13 @@ export default function DashboardLayout() {
                 />
                 {pathname !== '/create' && (
                     <TouchableOpacity
-                        style={styles.fab}
+                        style={[styles.fab, { bottom: pathname === '/map' ? 200 : 120 }]}
                         onPress={() => setTypeModalOpen(true)}
                     >
                         <Ionicons name="add" size={30} color="#fff" />
                     </TouchableOpacity>
                 )}
 
-
-                {/*<TouchableOpacity*/}
-                {/*    style={styles.fab}*/}
-                {/*    onPress={() => router.push('/create')}*/}
-                {/*>*/}
-                {/*    <Ionicons name="add" size={30} color="#fff" />*/}
-                {/*</TouchableOpacity>*/}
             </ThemedView>
 
         </UserOnly>

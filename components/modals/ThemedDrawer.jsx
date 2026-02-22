@@ -5,11 +5,11 @@ import {
     View,
     StyleSheet,
 } from 'react-native'
-import {Colors} from "../constants/Colors";
-import ThemedText from "./ThemedText";
-import {useUser} from "../hooks/useUser";
+import {Colors} from "../../constants/Colors";
+import ThemedText from "../ThemedText";
+import {useUser} from "../../hooks/useUser";
 import {Ionicons} from "@expo/vector-icons";
-import ThemedMenuItem from "./ThemedMenuItem";
+import ThemedMenuItem from "../ThemedMenuItem";
 import {useRouter} from "expo-router";
 
 const ThemedDrawer = ({ visible, onClose }) => {

@@ -1,4 +1,4 @@
-import {StyleSheet, useColorScheme, View} from "react-native";
+import { useColorScheme, View} from "react-native";
 import {Colors} from '../constants/Colors'
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
