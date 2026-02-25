@@ -28,7 +28,7 @@ The app requires a Supabase project with the following table. Run this SQL in th
 create table incidents (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
-  type text not null check (type in ('protest', 'construction', 'emergency')),
+  type text not null check (type in ('protest', 'construction', 'emergency', 'vandalism', 'blockade')),
   description text not null,
   severity text not null check (severity in ('low', 'medium', 'high')),
   latitude double precision,
@@ -84,7 +84,7 @@ EXPO_PUBLIC_SUPABASE_KEY=your_supabase_anon_key
 
 Get these values from the Supabase dashboard:
 1. Go to https://supabase.com and open your project
-2. On the home page, you'll have a url, that's the one, replace that in your env file  → paste as EXPO_PUBLIC_SUPABASE_URL
+2. On the home page, you'll have a url, it should look like (https://****.supabase.co), that's the one, replace that in your env file  → paste as EXPO_PUBLIC_SUPABASE_URL
 2. Click **Project Settings** (gear icon, bottom of left sidebar)
 3. Click **API** under the Configuration section
 5. Copy **publishable** key under Project API keys → paste as EXPO_PUBLIC_SUPABASE_KEY
