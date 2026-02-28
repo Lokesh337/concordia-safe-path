@@ -28,6 +28,8 @@ export function UserProvider({ children }) {
     // check completes.
     const [authChecked, setAuthChecked] = useState(false)
 
+    const [pendingRedirect, setPendingRedirect] = useState(false)
+
     /**
      * Calls Supabase signInWithPassword.
      */
@@ -39,9 +41,16 @@ export function UserProvider({ children }) {
     /**
      * Calls Supabase signUp. Behaviour depends on Supabase settings: confirmation email or not
      */
-    async function register(email, password) {
-        const { error } = await supabase.auth.signUp({ email, password })
+    async function register(email, password, metadata={}) {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: metadata // stored in user_metadata
+            }
+        })
         if (error) throw new Error(error.message)
+        return data
     }
 
     /**
@@ -50,6 +59,14 @@ export function UserProvider({ children }) {
      */
     async function logout() {
         await supabase.auth.signOut()
+    }
+
+    async function updateProfile(userId, data) {
+        const { error } = await supabase
+            .from('profiles')
+            .update(data)
+            .eq('id', userId)
+        if (error) throw new Error(error.message)
     }
 
     useEffect(() => {
@@ -65,6 +82,7 @@ export function UserProvider({ children }) {
         // We don't need to call setAuthChecked here because it was already
         // set to true in the getSession() callback above.
         const authListener = supabase.auth.onAuthStateChange((_event, session) => {
+            if (pendingRedirect) return
             setUser(session?.user ?? null)
         })
 
@@ -73,10 +91,10 @@ export function UserProvider({ children }) {
 
         // Unsubscribe when the provider unmounts to prevent memory leaks
         return () => subscription.unsubscribe()
-    }, []) // Empty deps, only run once on mount
+    }, [pendingRedirect]) // Empty deps, only run once on mount
 
     return (
-        <UserContext.Provider value={{ user, login, register, logout, authChecked }}>
+        <UserContext.Provider value={{ user, login, register, logout, authChecked, setPendingRedirect  }}>
             {children}
         </UserContext.Provider>
     )

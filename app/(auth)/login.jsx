@@ -9,10 +9,10 @@
  *    GuestOnly to redirect automatically to /incidents
  */
 
-import { Keyboard, StyleSheet, Text, TouchableWithoutFeedback } from 'react-native'
+import {Keyboard, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback} from 'react-native'
 import { useState } from "react";
 
-import { Link } from "expo-router";
+import {Link, router} from "expo-router";
 import { Colors } from "../../constants/Colors";
 import { useUser } from "../../hooks/useUser";
 
@@ -22,18 +22,26 @@ import Spacer from "../../components/Spacer";
 import ThemedText from "../../components/ThemedText";
 import ThemedButton from "../../components/ThemedButton";
 import ThemedTextInput from "../../components/ThemedTextInput";
+import RolePickerModal from "../../components/modals/RolePickerModal";
 
 const Login = () => {
     // state variables
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
+    const [roleModalVisible, setRoleModalVisible] = useState(false)
 
     // get the login function from user context
-    const { login } = useUser()
+    const { login, setPendingRedirect } = useUser()
+
+    const handleRoleSelect = (role) => {
+        setRoleModalVisible(false)
+        router.push({ pathname: '/register', params: { role } })
+    }
 
     const handleSubmit = async () => {
         setError(null); // Clear any previous error before attempting login
+        setPendingRedirect(false) // ensure auth listener is active before login
 
         try {
             await login(email, password)
@@ -79,18 +87,23 @@ const Login = () => {
                 {/* Only rendered when there's an active error */}
                 {error && <Text style={styles.error}>{error}</Text>}
 
-                <ThemedButton onPress={handleSubmit}>
+                <ThemedButton style={styles.button} onPress={handleSubmit}>
                     <Text style={{ color: '#f2f2f2' }}>Login</Text>
                 </ThemedButton>
 
                 <Spacer height={100} />
 
                 {/* link to the register screen */}
-                <Link href='/register'>
+                <TouchableOpacity onPress={() => setRoleModalVisible(true)}>
                     <ThemedText style={{ textAlign: 'center' }}>
-                        Register instead
+                        Don't have an account? <ThemedText style={{ color: Colors.primary }}>Sign up</ThemedText>
                     </ThemedText>
-                </Link>
+                </TouchableOpacity>
+
+                <RolePickerModal
+                    visible={roleModalVisible}
+                    onSelect={handleRoleSelect}
+                />
             </ThemedView>
         </TouchableWithoutFeedback>
     )
@@ -118,5 +131,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 6,
         marginHorizontal: 10,
+    },
+    button: {
+        width: '80%',
+        marginBottom: 20 ,
+        alignItems: 'center',
+        borderRadius: 30
     }
 })
