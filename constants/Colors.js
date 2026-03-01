@@ -3,7 +3,7 @@ export const Colors = {
     primaryDark: '#025BA3',   // dark blue — buttons, FAB, active states
 
     warning: '#cc475a',   // destructive actions, high-urgency alerts
-
+    attention: '#F7B023',
     //   Theme (light / dark)
     dark: {
         text:             '#d4d4d4',
