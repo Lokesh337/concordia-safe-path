@@ -35,9 +35,10 @@ create table if not exists profiles (
     high_contrast       boolean default false,
     reduced_motion      boolean default false,
     alert_categories    text[] default array[]::text[],
-    location_consent    boolean default false,
-    emergency_contacts  jsonb default '[]'::jsonb,
-    created_at          timestamptz default now()
+    location_consent        boolean default false,
+    emergency_contacts      jsonb default '[]'::jsonb,
+    preferences_completed   boolean default false,  -- true once user completes or skips the onboarding preferences screen
+    created_at              timestamptz default now()
     );
 
 alter table profiles enable row level security;

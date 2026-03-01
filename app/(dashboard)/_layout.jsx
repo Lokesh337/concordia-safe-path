@@ -4,6 +4,7 @@ import { Colors } from "../../constants/Colors"
 import { Ionicons} from "@expo/vector-icons";
 import UserOnly from "../../components/auth/UserOnly";
 import ThemedHeader from "../../components/ThemedHeader";
+import { useUser } from "../../hooks/useUser";
 import ThemedView from "../../components/ThemedView";
 import SpeedDial from "../../components/modals/SpeedDial";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
@@ -21,17 +22,21 @@ export default function DashboardLayout() {
     const router = useRouter()
     const insets = useSafeAreaInsets()
     const pathname = usePathname()
+    const { profile } = useUser()
+
+    // hide header/tabs when user is on preferences for the first time
+    const isOnboarding = pathname === '/menu/preferences' && !profile?.preferences_completed
 
 
     return (
         <UserOnly>
             <ThemedView style={{ flex: 1 }}>
-                <ThemedHeader />
+                {!isOnboarding && <ThemedHeader />}
                 <Tabs
                     screenOptions={{
                         headerShown: false,
                         // tabBarStyle: { backgroundColor: 'blue', paddingTop: TAB_BAR_PADDING_TOP, height: insets.bottom + 65},
-                        tabBarStyle: { backgroundColor: theme.navBackground, paddingTop: 10, height: 100 },
+                        tabBarStyle: isOnboarding ? { display: 'none' } : { backgroundColor: theme.navBackground, paddingTop: 10, height: 100 },
                         tabBarActiveTintColor: theme.iconColorFocused,
                         tabBarInactiveTintColor: theme.iconColor,
                     }}
@@ -95,7 +100,7 @@ export default function DashboardLayout() {
 
                 </Tabs>
 
-                <SpeedDial paddingTop={TAB_BAR_PADDING_TOP}/>
+                {!isOnboarding && <SpeedDial paddingTop={TAB_BAR_PADDING_TOP}/>}
                 <IncidentTypeModal
                     visible={typeModalOpen}
                     onClose={() => setTypeModalOpen(false)}
@@ -104,7 +109,7 @@ export default function DashboardLayout() {
                         router.push({ pathname: '/create', params: { type } })
                     }}
                 />
-                {pathname !== '/create' && (
+                {!isOnboarding && pathname !== '/create' && (
                     <TouchableOpacity
                         style={[styles.fab, { bottom: pathname === '/map' ? 200 : 120 }]}
                         onPress={() => setTypeModalOpen(true)}
@@ -137,4 +142,3 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
 })
-

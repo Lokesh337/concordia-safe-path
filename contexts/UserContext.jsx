@@ -1,7 +1,6 @@
 /**
  * Provides global authentication state and auth actions to the entire app.
  *
- * Sstored in context:
  *  - user: Supabase User object when logged in, null otherwise.
  *  - authChecked : bolean flag - true once we've received the initial
  *                   response from Supabase. Used for route protectuion
@@ -24,11 +23,33 @@ export function UserProvider({ children }) {
     // User  = logged-in Supabase user object
     const [user, setUser] = useState(null)
 
+    // profiles table row for the current user — null until fetched
+    const [profile, setProfile] = useState(null)
+
+    // true once fetchProfile has completed at least once for the current user
+    const [profileChecked, setProfileChecked] = useState(false)
+
     // prevents route guards from redirecting before inital session check completes
     const [authChecked, setAuthChecked] = useState(false)
 
     // when true, auth listener is paused to avoid premature redirects during signup flow
     const [pendingRedirect, setPendingRedirect] = useState(false)
+
+    // fetches the profiles row for a given userId and stores it in state
+    async function fetchProfile(userId) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle()
+        if (error) {
+            console.warn('fetchProfile error:', error.message)
+            setProfile(null)
+        } else {
+            setProfile(data)
+        }
+        setProfileChecked(true)
+    }
 
     /**
      * Signs in with email + password, throws on failure.
@@ -61,6 +82,8 @@ export function UserProvider({ children }) {
      */
     async function logout() {
         await supabase.auth.signOut()
+        setProfile(null)
+        setProfileChecked(false)
     }
 
     // updates a user's profile row in the profiles table by id
@@ -70,20 +93,35 @@ export function UserProvider({ children }) {
             .update(data)
             .eq('id', userId)
         if (error) throw new Error(error.message)
+        // refresh local profile so UserOnly re-evaluates preferences_completed immediately
+        await fetchProfile(userId)
     }
 
     useEffect(() => {
         // step 1: grab existing session from storage, mark auth as checked once done
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null)
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
+            const sessionUser = session?.user ?? null
+            setUser(sessionUser)
+            if (sessionUser) {
+                await fetchProfile(sessionUser.id)
+            } else {
+                setProfileChecked(true) // no user, no profile to fetch — unblock UserOnly
+            }
             setAuthChecked(true)
         })
 
         // step 2: subscribe to future auth changes (login, logout, token refresh, expiry etc.)
         // no need to setAuthChecked here, already handled in getSession above
-        const authListener = supabase.auth.onAuthStateChange((_event, session) => {
+        const authListener = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (pendingRedirect) return // skip update while signup flow is in progress
-            setUser(session?.user ?? null)
+            const sessionUser = session?.user ?? null
+            setUser(sessionUser)
+            if (sessionUser) {
+                await fetchProfile(sessionUser.id)
+            } else {
+                setProfile(null)
+                setProfileChecked(true)
+            }
         })
 
         // grab subscription ref for cleanup
@@ -94,7 +132,7 @@ export function UserProvider({ children }) {
     }, [pendingRedirect])
 
     return (
-        <UserContext.Provider value={{ user, login, register, logout, authChecked, setPendingRedirect  }}>
+        <UserContext.Provider value={{ user, profile, profileChecked, login, register, logout, authChecked, setPendingRedirect, updateProfile }}>
             {children}
         </UserContext.Provider>
     )
