@@ -24,12 +24,14 @@ export function UserProvider({ children }) {
     // User  = logged-in Supabase user object
     const [user, setUser] = useState(null)
 
-    // Prevents route protection from redirecting before the initial session
-    // check completes.
+    // prevents route guards from redirecting before inital session check completes
     const [authChecked, setAuthChecked] = useState(false)
 
+    // when true, auth listener is paused to avoid premature redirects during signup flow
+    const [pendingRedirect, setPendingRedirect] = useState(false)
+
     /**
-     * Calls Supabase signInWithPassword.
+     * Signs in with email + password, throws on failure.
      */
     async function login(email, password) {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -37,11 +39,20 @@ export function UserProvider({ children }) {
     }
 
     /**
-     * Calls Supabase signUp. Behaviour depends on Supabase settings: confirmation email or not
+     * Creates a new account via supabase signUp.
+     * behaviour depends on supabase settings (confirmation email or auto sign-in).
+     * metadata is stored in user_metadata and used by the DB trigger to create a profile.
      */
-    async function register(email, password) {
-        const { error } = await supabase.auth.signUp({ email, password })
+    async function register(email, password, metadata={}) {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: metadata // stored in user_metadata
+            }
+        })
         if (error) throw new Error(error.message)
+        return data
     }
 
     /**
@@ -52,31 +63,38 @@ export function UserProvider({ children }) {
         await supabase.auth.signOut()
     }
 
+    // updates a user's profile row in the profiles table by id
+    async function updateProfile(userId, data) {
+        const { error } = await supabase
+            .from('profiles')
+            .update(data)
+            .eq('id', userId)
+        if (error) throw new Error(error.message)
+    }
+
     useEffect(() => {
-        // Step 1: Fetch the existing session from localStorage
-        // setAuthChecked(true) is called here so guards know the check is done.
+        // step 1: grab existing session from storage, mark auth as checked once done
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null)
             setAuthChecked(true)
         })
 
-        // Step 2: Subscribe to all future auth state changes.
-        // This handles: login, logout, token refresh, session expiry, etc.
-        // We don't need to call setAuthChecked here because it was already
-        // set to true in the getSession() callback above.
+        // step 2: subscribe to future auth changes (login, logout, token refresh, expiry etc.)
+        // no need to setAuthChecked here, already handled in getSession above
         const authListener = supabase.auth.onAuthStateChange((_event, session) => {
+            if (pendingRedirect) return // skip update while signup flow is in progress
             setUser(session?.user ?? null)
         })
 
-        // Grab the subscription object to clean up on unmount
+        // grab subscription ref for cleanup
         const subscription = authListener.data.subscription
 
-        // Unsubscribe when the provider unmounts to prevent memory leaks
+        // unsubscribe on unmount to avoid memory leaks
         return () => subscription.unsubscribe()
-    }, []) // Empty deps, only run once on mount
+    }, [pendingRedirect])
 
     return (
-        <UserContext.Provider value={{ user, login, register, logout, authChecked }}>
+        <UserContext.Provider value={{ user, login, register, logout, authChecked, setPendingRedirect  }}>
             {children}
         </UserContext.Provider>
     )

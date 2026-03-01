@@ -1,5 +1,7 @@
 export const Colors = {
-    primary: '#6849a7',   // main purple — buttons, FAB, active states
+    primary: '#59A7E7', // light blue — primary actions, highlights
+    primaryDark: '#025BA3',   // dark blue — buttons, FAB, active states
+
     warning: '#cc475a',   // destructive actions, high-urgency alerts
 
     //   Theme (light / dark)
@@ -11,15 +13,17 @@ export const Colors = {
         iconColor:        '#9591a5',
         iconColorFocused: '#fff',
         uiBackground:     '#2f2b3d',
+        tint:             '#59A7E7',
     },
     light: {
-        text:             '#625f72',
-        title:            '#201e2b',
-        background:       '#e0dfe8',
-        navBackground:    '#e8e7ef',
-        iconColor:        '#686477',
-        iconColorFocused: '#201e2b',
-        uiBackground:     '#d6d5e1',
+        text:             '#4a5568',
+        title:            '#025BA3',
+        background:       '#f0f4f8',
+        navBackground:    '#ffffff',
+        iconColor:        '#59A7E7',
+        iconColorFocused: '#025BA3',
+        uiBackground:     '#ffffff',
+        tint:             '#025BA3',
     },
 
     //   Incident severity
@@ -42,21 +46,21 @@ export const Colors = {
     badge: {
         verified:         '#27ae60',   // green  — verified by campus
         verifiedBg:       '#27ae6022',
-        reported:         '#4a90e2',   // blue   — reported by users
-        reportedBg:       '#4a90e222',
+        reported:         '#59A7E7',   // light blue — reported by users
+        reportedBg:       '#59A7E722',
         resolved:         '#626262',   // grey   — resolved incidents
         resolvedBg:       '#62626222',
     },
 
     // Map markers
     marker: {
-        building:         '#e74c3c',   // red dot — Concordia buildings
+        building:         '#025BA3',   // dark blue dot — Concordia buildings
         buildingInner:    '#fff',
     },
 
     // UI utilities
     overlay:              '#00000066', // modal backdrop
-    divider:              '#ffffff33', // subtle separator line
+    divider:              '#59A7E733', // subtle separator line
     white:                '#fff',
     black:                '#000',
 }

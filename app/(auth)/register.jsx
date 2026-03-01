@@ -1,119 +1,230 @@
-/**\ * Registration screen — allows new users to create an account.
+/**
+ * Registration screen — allows new users to create an account.
  *
  *  - Collects email + password and calls register() from UserContext.
  *  - register() calls Supabase signUp
  *  - Displays a styled error banner on failure
  *  - On success, Supabase auto-sign-in the user, triggering the GuestOnly redirect.
- * *
+ *
  * TODO (Goal 1):
- *  - Add account type selection (Student vs Security Staff)
  *  - Add accessibility preferences step
  *  - Add privacy consent for location tracking
  */
 
-import { Keyboard, StyleSheet, Text, TouchableWithoutFeedback } from 'react-native'
-import { useState } from "react";
-import { Link } from "expo-router";
+import {
+    Keyboard,
+    KeyboardAvoidingView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
+    Platform, LayoutAnimation
+} from 'react-native'
+import {useEffect, useState} from "react"
+import { useLocalSearchParams, useRouter } from "expo-router"
 
-// hooks
-import { useUser } from "../../hooks/useUser";
+import { useUser } from "../../hooks/useUser"
+import { Colors } from "../../constants/Colors"
 
-//constants
-import { Colors } from "../../constants/Colors";
-
-// Themed components
-import ThemedView from "../../components/ThemedView";
-import Spacer from "../../components/Spacer";
-import ThemedText from "../../components/ThemedText";
-import ThemedButton from "../../components/ThemedButton";
-import ThemedTextInput from "../../components/ThemedTextInput";
+// themed components, handle light/dark mode automatically
+import ThemedView from "../../components/ThemedView"
+import ThemedText from "../../components/ThemedText"
+import ThemedButton from "../../components/ThemedButton"
+import ThemedTextInput from "../../components/ThemedTextInput"
+import EmailConfirmationModal from "../../components/auth/EmailConfirmationModal"
+import AuthHeader from "../../components/auth/AuthHeader"
 
 const Register = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const { role } = useLocalSearchParams() // 'student' or 'staff', passed from RolePickerModal
 
-    // error holds a human-readable string from Supabase, or null
-    const [error, setError] = useState(null);
+    const [username, setUsername] = useState("")
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
 
-    // register comes from UserContext, wraps supabase.auth.signUp()
-    const { register } = useUser();
+    // holds a human-readable string from supabase, or null
+    const [error, setError] = useState(null)
+
+    const [showConfirmation, setShowConfirmation] = useState(false)
+
+    // register wraps supabase.auth.signUp()
+    const { register, setPendingRedirect } = useUser()
+    const router = useRouter()
+
+    const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+    // animate layout when keyboard opens/closes so nothing gets covered
+    useEffect(() => {
+        const show = Keyboard.addListener('keyboardDidShow', () => {
+            LayoutAnimation.easeInEaseOut()
+            setKeyboardOpen(true)
+        })
+        const hide = Keyboard.addListener('keyboardDidHide', () => {
+            LayoutAnimation.easeInEaseOut()
+            setKeyboardOpen(false)
+        })
+        return () => {
+            show.remove()
+            hide.remove()
+        }
+    }, [])
 
     const handleSubmit = async () => {
-        setError(null); // Clear previous errors
+        setError(null)
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match")
+            return
+        }
+
+        if (!username.trim()) {
+            setError("Username is required")
+            return
+        }
 
         try {
-            await register(email, password)
-            // On success: if Supabase auto-confirms the session, UserContext
-            // updates user state → GuestOnly redirects to /incidents.
-        } catch (error) {
-            setError(error.message);
+            setPendingRedirect(true)
+            await register(email, password, { role, username })
+            // profile created automaticaly by DB trigger using user_metadata
+            // no need to call updateProfile regardless of email confirmation setting
+            setShowConfirmation(true)
+        } catch (e) {
+            setPendingRedirect(false)
+            setError(e.message)
         }
     }
 
     return (
-        // Tapping outside inputs dismisses the keyboard
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ThemedView style={styles.container} safe={true}>
-                <Spacer />
+        // handles keyboard overlap on ios vs android differently
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            {/* dismiss keyboard when tapping outside inputs */}
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={styles.root}>
 
-                <ThemedText title={true} style={styles.title}>
-                    Register for an Account
-                </ThemedText>
+                    <EmailConfirmationModal
+                        visible={showConfirmation}
+                        email={email}
+                        onProceed={() => {
+                            setPendingRedirect(false)
+                            router.replace('/login')
+                        }}
+                    />
 
-                <ThemedTextInput
-                    style={{ width: '80%', marginBottom: 20 }}
-                    placeholder="Email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    onChangeText={setEmail}
-                    value={email}
-                />
+                    {/* hide header when keyboard is open to save space */}
+                    {!keyboardOpen && <AuthHeader />}
 
-                <ThemedTextInput
-                    style={{ width: '80%', marginBottom: 20 }}
-                    placeholder="Password"
-                    autoCapitalize="none"
-                    onChangeText={setPassword}
-                    value={password}
-                    secureTextEntry
-                />
+                    {/* remove rounded corners when keyboard is open, looks weird otherwise */}
+                    <ThemedView style={[
+                        styles.container,
+                        keyboardOpen && { marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }
+                    ]} safe={false}>
 
-                <ThemedButton onPress={handleSubmit}>
-                    <Text style={{ color: '#f2f2f2' }}>Register</Text>
-                </ThemedButton>
+                        {/* title changes based on role */}
+                        <ThemedText title={true} style={styles.title}>
+                            {role === 'staff' ? 'Staff Sign Up' : 'Student Sign Up'}
+                        </ThemedText>
 
-                <Spacer />
+                        <ThemedTextInput
+                            style={styles.input}
+                            placeholder="Username"
+                            autoCapitalize="none"
+                            onChangeText={setUsername}
+                            value={username}
+                            icon="person-outline"
+                        />
 
-                {/* Error banner — only shown when registration fails */}
-                {error && <Text style={styles.error}>{error}</Text>}
+                        {/* placeholder also changes based on role */}
+                        <ThemedTextInput
+                            style={styles.input}
+                            placeholder={role === 'staff' ? 'Staff Email' : 'Student Email'}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            onChangeText={setEmail}
+                            value={email}
+                            icon="mail-outline"
+                        />
 
-                <Spacer height={100} />
+                        <ThemedTextInput
+                            style={styles.input}
+                            placeholder="Password"
+                            autoCapitalize="none"
+                            onChangeText={setPassword}
+                            value={password}
+                            secureTextEntry
+                            icon="lock-closed-outline"
+                        />
 
-                {/* Link back to login for users who already have an account */}
-                <Link href='/login'>
-                    <ThemedText style={{ textAlign: 'center' }}>
-                        Login instead
-                    </ThemedText>
-                </Link>
-            </ThemedView>
-        </TouchableWithoutFeedback>
+                        <ThemedTextInput
+                            style={styles.input}
+                            placeholder="Confirm Password"
+                            autoCapitalize="none"
+                            onChangeText={setConfirmPassword}
+                            value={confirmPassword}
+                            secureTextEntry
+                            icon="lock-closed-outline"
+                        />
+
+                        {/* error banner — only shown when registration fails */}
+                        {error && <Text style={styles.error}>{error}</Text>}
+
+                        <ThemedButton
+                            style={styles.button}
+                            onPress={handleSubmit}
+                        >
+                            <Text style={{ color: '#f2f2f2' }}>Sign Up</Text>
+                        </ThemedButton>
+
+                        {/* link back to login */}
+                        <TouchableOpacity onPress={() => router.replace('/login')}>
+                            <ThemedText style={{ textAlign: 'center' }}>
+                                Already have an account?{' '}
+                                <ThemedText style={{ color: Colors.primary }}>Log in</ThemedText>
+                            </ThemedText>
+                        </TouchableOpacity>
+
+                    </ThemedView>
+                </View>
+            </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
     )
 }
 
 export default Register
 
 const styles = StyleSheet.create({
+    root: {
+        flex: 1,
+        backgroundColor: Colors.primaryDark,
+    },
     container: {
         flex: 1,
-        justifyContent: "center",
         alignItems: "center",
+        justifyContent: 'center',
+        borderTopLeftRadius: 50,
+        borderTopRightRadius: 50,
+        paddingHorizontal: 28,
+        marginTop: -30, // overlaps slightly over the header
     },
     title: {
         textAlign: "center",
         fontSize: 25,
-        marginBottom: 30,
+        marginBottom: 24,
     },
-    // Red-tinted error banner consistent with login.jsx
+    input: {
+        width: '100%',
+        marginBottom: 16,
+    },
+    button: {
+        width: '100%',
+        marginBottom: 20,
+        alignItems: 'center',
+        borderRadius: 30, // pill shape
+    },
+    // red-tinted error banner shown below inputs on failure
     error: {
         color: Colors.warning,
         padding: 10,
@@ -121,6 +232,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.warning,
         borderWidth: 1,
         borderRadius: 6,
-        marginHorizontal: 10,
-    }
+        marginBottom: 12,
+        width: '100%',
+    },
 })
