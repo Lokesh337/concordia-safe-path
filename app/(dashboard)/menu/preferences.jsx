@@ -34,8 +34,6 @@ const Preferences = () => {
                     <ThemedText style={{ color: Colors.primary, textAlign: 'center' }}>Skip for now</ThemedText>
                 </TouchableOpacity>
             }
-
-
         </ThemedView>
     )
 }

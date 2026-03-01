@@ -26,6 +26,9 @@ export function UserProvider({ children }) {
     // profiles table row for the current user — null until fetched
     const [profile, setProfile] = useState(null)
 
+    // true once fetchProfile has completed at least once for the current user
+    const [profileChecked, setProfileChecked] = useState(false)
+
     // prevents route guards from redirecting before inital session check completes
     const [authChecked, setAuthChecked] = useState(false)
 
@@ -38,13 +41,14 @@ export function UserProvider({ children }) {
             .from('profiles')
             .select('*')
             .eq('id', userId)
-            .single()
+            .maybeSingle()
         if (error) {
             console.warn('fetchProfile error:', error.message)
             setProfile(null)
         } else {
             setProfile(data)
         }
+        setProfileChecked(true)
     }
 
     /**
@@ -78,6 +82,8 @@ export function UserProvider({ children }) {
      */
     async function logout() {
         await supabase.auth.signOut()
+        setProfile(null)
+        setProfileChecked(false)
     }
 
     // updates a user's profile row in the profiles table by id
@@ -96,7 +102,11 @@ export function UserProvider({ children }) {
         supabase.auth.getSession().then(async ({ data: { session } }) => {
             const sessionUser = session?.user ?? null
             setUser(sessionUser)
-            if (sessionUser) await fetchProfile(sessionUser.id)
+            if (sessionUser) {
+                await fetchProfile(sessionUser.id)
+            } else {
+                setProfileChecked(true) // no user, no profile to fetch — unblock UserOnly
+            }
             setAuthChecked(true)
         })
 
@@ -110,6 +120,7 @@ export function UserProvider({ children }) {
                 await fetchProfile(sessionUser.id)
             } else {
                 setProfile(null)
+                setProfileChecked(true)
             }
         })
 
@@ -121,7 +132,7 @@ export function UserProvider({ children }) {
     }, [pendingRedirect])
 
     return (
-        <UserContext.Provider value={{ user, profile, login, register, logout, authChecked, setPendingRedirect, updateProfile }}>
+        <UserContext.Provider value={{ user, profile, profileChecked, login, register, logout, authChecked, setPendingRedirect, updateProfile }}>
             {children}
         </UserContext.Provider>
     )
