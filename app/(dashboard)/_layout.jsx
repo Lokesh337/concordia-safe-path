@@ -6,7 +6,6 @@ import UserOnly from "../../components/auth/UserOnly";
 import ThemedHeader from "../../components/ThemedHeader";
 import { useUser } from "../../hooks/useUser";
 import ThemedView from "../../components/ThemedView";
-import SpeedDial from "../../components/modals/SpeedDial";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import IncidentTypeModal from "../../components/modals/IncidentTypeModal";
 import {useState} from "react";
@@ -45,7 +44,6 @@ export default function DashboardLayout() {
                         name="incidents"
                         options={{
                             title: "Incidents",
-                            tabBarItemStyle: { paddingRight: 30 },
                             tabBarIcon: ({focused}) => (
                                 <Ionicons
                                     size={30}
@@ -59,7 +57,6 @@ export default function DashboardLayout() {
                         name="map"
                         options={{
                             title: "Map",
-                            tabBarItemStyle: { paddingLeft: 30 },
                             tabBarIcon: ({ focused }) => (
                                 <Ionicons
                                     size={30}
@@ -100,7 +97,6 @@ export default function DashboardLayout() {
 
                 </Tabs>
 
-                {!isOnboarding && <SpeedDial paddingTop={TAB_BAR_PADDING_TOP}/>}
                 <IncidentTypeModal
                     visible={typeModalOpen}
                     onClose={() => setTypeModalOpen(false)}
@@ -111,10 +107,18 @@ export default function DashboardLayout() {
                 />
                 {!isOnboarding && pathname !== '/create' && (
                     <TouchableOpacity
-                        style={[styles.fab, { bottom: pathname === '/map' ? 200 : 120 }]}
+                        style={styles.emergencyFab}
+                        onPress={() => router.push('/menu/resources')}
+                    >
+                        <Ionicons name="medkit-outline" size={28} color="#fff" />
+                    </TouchableOpacity>
+                )}
+                {!isOnboarding && pathname !== '/create' && (
+                    <TouchableOpacity
+                        style={[styles.createFab, ]}
                         onPress={() => setTypeModalOpen(true)}
                     >
-                        <Ionicons name="add" size={30} color="#fff" />
+                        <Ionicons name="warning" size={30} color={Colors.attention} />
                     </TouchableOpacity>
                 )}
 
@@ -125,14 +129,30 @@ export default function DashboardLayout() {
 }
 
 const styles = StyleSheet.create({
-    fab: {
+    emergencyFab: {
         position: 'absolute',
-        bottom: 120,       // sits above the tab bar
+        bottom: 120, // sits above the tab bar
         right: 30,
         width: 65,
         height: 65,
         borderRadius: 30,
-        backgroundColor: Colors.primary,
+        backgroundColor: Colors.primaryDark,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+    },
+    createFab: {
+        position: 'absolute',
+        bottom: 210,
+        right: 30,
+        width: 65,
+        height: 65,
+        borderRadius: 30,
+        backgroundColor: Colors.primaryDark,
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 5,      // android shadow

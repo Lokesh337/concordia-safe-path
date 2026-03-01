@@ -61,7 +61,7 @@ const Create = () => {
     }, [])
 
     async function handleSubmit() {
-        if (!type.trim() || !severity.trim() || !description.trim() || !pin) return
+        if (!type.trim() || !severity.trim() || !pin) return
 
         setLoading(true)
 
@@ -179,13 +179,12 @@ const Create = () => {
 
                     <ThemedButton
                         onPress={handleSubmit}
-                        disabled={ loading || !pin || !description.trim() }
+                        disabled={ loading || !pin }
                         style={{ alignSelf: 'stretch', marginHorizontal: 40 }}
                     >
                         <Text style={{ color: '#fff', alignSelf: 'center' }}>
                             {loading ? "Saving..."
                                 : !pin ? "Drop a Pin First!"
-                                : !description.trim() ? "Add a Description!"
                                 : "Submit Incident"}
                         </Text>
                     </ThemedButton>

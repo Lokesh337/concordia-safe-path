@@ -59,7 +59,8 @@ const ThemedHeader = () => {
             styles.header,
             {
                 backgroundColor: theme.navBackground,
-                paddingTop: insets.top + 10, // push content below the status bar/notch
+                paddingTop: insets.top + 15, // push content below the status bar/notch
+                paddingBottom: 15,
             }
         ]}>
             {/* Left: hamburger menu → opens ThemedDrawer */}
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingVertical: 10,
+        paddingVertical: 0,
     },
     headerTitle: {
         fontSize: 18,
