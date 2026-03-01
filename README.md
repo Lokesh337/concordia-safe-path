@@ -1,5 +1,3 @@
-> **⚠️ AI-Generated Document Disclaimer:** This README was generated with the assistance of an AI tool (Claude by Anthropic) and reviewed by me (Luan)
-
 A React Native mobile application designed to help Concordia University students navigate campus safely during disruptions such as protests, construction, and emergencies.
 
 ---
