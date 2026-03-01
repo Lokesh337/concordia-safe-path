@@ -22,44 +22,7 @@ Make sure you have the following installed before starting:
 
 ## Supabase Database Setup
 
-The app requires a Supabase project with the following table. Run this SQL in the **Supabase SQL Editor**:
-
-```sql
-create table incidents (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
-  type text not null check (type in ('protest', 'construction', 'emergency', 'vandalism', 'blockade')),
-  description text not null,
-  severity text not null check (severity in ('low', 'medium', 'high')),
-  latitude double precision,
-  longitude double precision,
-  upvotes int default 0,
-  verified boolean default false,
-  status text not null default 'active' check (status in ('active', 'resolved')),
-  created_at timestamptz default now()
-);
-
-alter table incidents enable row level security;
-
-create policy "Anyone can view incidents"
-on incidents for select using (true);
-
-create policy "Logged in users can create incidents"
-on incidents for insert
-with check (auth.uid() is not null);
-
-create policy "Logged in users can upvote incidents"
-on incidents for update
-using (auth.uid() is not null)
-with check (auth.uid() is not null);
-
-create policy "Users can delete their own incidents"
-on incidents for delete
-using (auth.uid() = user_id);
-
-alter publication supabase_realtime add table incidents;
-alter table incidents replica identity full;
-```
+The app requires a Supabase project with the following table. Find the schema.sql file in the supabase folder and paste the content in the **Supabase SQL Editor**.
 
 ## Setup
 
