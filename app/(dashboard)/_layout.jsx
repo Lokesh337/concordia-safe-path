@@ -10,7 +10,13 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import IncidentTypeModal from "../../components/modals/IncidentTypeModal";
 import {useState} from "react";
 import OfflineBanner from "../../components/offline/OfflineBanner";
-const TAB_BAR_PADDING_TOP = 10
+
+import { useIncidents } from "../../hooks/useIncidents";
+import { useProximityAlerts } from "../../hooks/useProximityAlerts";
+import ProximityAlertModal from "../../components/modals/ProximityAlertModal";
+import LocationWakeup from "../../components/LocationWakeup";
+import {useNotifications} from "../../hooks/useNotifications";
+
 export default function DashboardLayout() {
     const colorScheme = useColorScheme()
     const theme = Colors[colorScheme] ?? Colors.light
@@ -19,6 +25,12 @@ export default function DashboardLayout() {
     const insets = useSafeAreaInsets()
     const pathname = usePathname()
     const { profile } = useUser()
+
+    const { incidents } = useIncidents();
+    const activeIncidents = incidents.filter(i => i.status === 'active' && i.latitude && i.longitude);
+    const { sendProximityNotification } = useNotifications();
+    const { activeAlert, dismissAlert } = useProximityAlerts(activeIncidents, sendProximityNotification);
+
     // hide header/tabs when user is on preferences for the first time
     const isOnboarding = pathname === '/menu/preferences' && !profile?.preferences_completed
     // hide the global hamburger header on pages that have their own custom header
@@ -31,7 +43,7 @@ export default function DashboardLayout() {
                 <Tabs
                     screenOptions={{
                         headerShown: false,
-                        // tabBarStyle: { backgroundColor: 'blue', paddingTop: TAB_BAR_PADDING_TOP, height: insets.bottom + 65},                        
+                        // tabBarStyle: { backgroundColor: 'blue', paddingTop: TAB_BAR_PADDING_TOP, height: insets.bottom + 65},
                         tabBarStyle: isOnboarding ? { display: 'none' } : { backgroundColor: theme.navBackground, paddingTop: 10, height: 100 },
                         tabBarActiveTintColor: theme.iconColorFocused,
                         tabBarInactiveTintColor: theme.iconColor,
@@ -115,6 +127,13 @@ export default function DashboardLayout() {
                         <Ionicons name="warning" size={30} color={Colors.attention} />
                     </TouchableOpacity>
                 )}
+                <ProximityAlertModal
+                    visible={!!activeAlert}
+                    incident={activeAlert?.incident}
+                    stage={activeAlert?.stage}
+                    onClose={dismissAlert}
+                />
+                <LocationWakeup/>
             </ThemedView>
         </UserOnly>
     )

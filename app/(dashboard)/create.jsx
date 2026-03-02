@@ -40,7 +40,7 @@ const Create = () => {
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme] ?? Colors.light;
 
-    const [type, setType] = useState(initialType || '')
+    const [type, setType] = useState('')
     const [severity, setSeverity] = useState('low')
     const [description, setDescription] = useState("")
 
@@ -63,6 +63,11 @@ const Create = () => {
         }
         getLocation()
     }, [])
+
+    useEffect(() => {
+        if (initialType) setType(initialType)
+        setPin(null)
+    }, [initialType])
 
     async function handleSubmit() {
         if (!isOnline) { setOfflineModal(true); return }
