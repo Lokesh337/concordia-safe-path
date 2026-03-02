@@ -27,6 +27,7 @@
 import { createContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useUser } from "../hooks/useUser";
+import {useNetwork} from "../hooks/useNetwork";
 
 const TABLE = 'incidents'
 
@@ -36,6 +37,8 @@ export function IncidentsProvider({ children }) {
     // The full list of incidents from the database
     const [incidents, setIncidents] = useState([])
     const { user } = useUser()
+    const { isOnline } = useNetwork()
+
 
     /**
      * Loads all incidents from the database and replaces local state.
@@ -137,6 +140,10 @@ export function IncidentsProvider({ children }) {
         return () => supabase.removeChannel(channel)
 
     }, [user]) // Re-run whenever the user changes (login / logout)
+
+    useEffect(() => {
+        if (isOnline && user?.id) fetchIncidents()
+    }, [isOnline])
 
     return (
         <IncidentsContext.Provider value={{ incidents, fetchIncidents, fetchIncidentById, createIncident }}>

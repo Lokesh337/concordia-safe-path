@@ -1,4 +1,4 @@
-import { FlatList, Pressable, StyleSheet, View } from 'react-native'
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
@@ -22,12 +22,15 @@ import { Colors } from '../../constants/Colors'
 const SEVERITIES = ['high', 'medium', 'low']
 
 const Incidents = () => {
-    const { incidents } = useIncidents()
+    const { incidents, fetchIncidents } = useIncidents()
     const router = useRouter()
     const [filter, setFilter] = useState(null)
     const [sortBy, setSortBy] = useState('time')
     const [filtersExpanded, setFiltersExpanded] = useState(false)
+
     const [userCoords, setUserCoords] = useState(null)
+    const [refreshing, setRefreshing] = useState(false)
+
 
     // Request location for distance sorting
     useEffect(() => {
@@ -39,6 +42,12 @@ const Incidents = () => {
         }
         getLocation()
     }, [])
+
+    async function onRefresh() {
+        setRefreshing(true)
+        await fetchIncidents()
+        setRefreshing(false)
+    }
 
     // Filter by severity if set
     const filtered = filter
@@ -129,6 +138,9 @@ const Incidents = () => {
             )}
 
             <FlatList
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+                }
                 data={resolved}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.list}

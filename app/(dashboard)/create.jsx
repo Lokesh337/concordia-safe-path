@@ -10,10 +10,11 @@ import {
 } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 
-import { useEffect, useState } from 'react'
+import {useEffect, useState} from 'react'
 import MapView, { Marker } from 'react-native-maps'
-import * as Location from 'expo-location'
 import {Ionicons} from "@expo/vector-icons";
+import * as Location from 'expo-location'
+
 
 // themed components
 import ThemedView from "../../components/ThemedView"
@@ -23,9 +24,12 @@ import ThemedButton from '../../components/ThemedButton'
 import Spacer from '../../components/Spacer'
 import ThemedLoader from "../../components/ThemedLoader";
 import IncidentTypeModal from '../../components/modals/IncidentTypeModal'
+import OfflineActionModal from "../../components/offline/OfflineActionModal"
+
 
 //hooks
 import {useIncidents} from "../../hooks/useIncidents";
+import { useNetwork } from "../../hooks/useNetwork"
 
 //Constants
 import {Colors} from "../../constants/Colors";
@@ -41,14 +45,20 @@ const Create = () => {
     const [description, setDescription] = useState("")
 
 
-    const [userCoords, setUserCoords] = useState(null)
+
+    // const [userCoords, setUserCoords] = useState(null)
     const [pin, setPin] = useState(null)
 
     const [loading, setLoading] = useState(false)
-
-
+    const [offlineModal, setOfflineModal] = useState(false)
+    const { isOnline } = useNetwork()
     const { createIncident } = useIncidents()
     const router = useRouter()
+
+    // const { coords: userCoords } = useLocation()
+
+
+    const [userCoords, setUserCoords] = useState(null)
 
     useEffect(() => {
         async function getLocation() {
@@ -61,6 +71,8 @@ const Create = () => {
     }, [])
 
     async function handleSubmit() {
+        if (!isOnline) { setOfflineModal(true); return }
+
         if (!type.trim() || !severity.trim() || !pin) return
 
         setLoading(true)
@@ -74,6 +86,8 @@ const Create = () => {
 
         router.replace("/incidents")
         setLoading(false)
+
+
     }
 
     return (
@@ -188,6 +202,8 @@ const Create = () => {
                                 : "Submit Incident"}
                         </Text>
                     </ThemedButton>
+
+                    <OfflineActionModal visible={offlineModal} onClose={() => setOfflineModal(false)} />
 
                     <IncidentTypeModal
                         visible={typeModalOpen}
