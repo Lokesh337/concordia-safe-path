@@ -9,6 +9,7 @@ import ThemedView from "../../components/ThemedView";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import IncidentTypeModal from "../../components/modals/IncidentTypeModal";
 import {useState} from "react";
+import OfflineBanner from "../../components/offline/OfflineBanner";
 
 const TAB_BAR_PADDING_TOP = 10
 
@@ -31,6 +32,7 @@ export default function DashboardLayout() {
         <UserOnly>
             <ThemedView style={{ flex: 1 }}>
                 {!isOnboarding && <ThemedHeader />}
+                <OfflineBanner />
                 <Tabs
                     screenOptions={{
                         headerShown: false,

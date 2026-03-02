@@ -26,8 +26,7 @@ const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
 
     return (
         // animationType="fade" gives a smooth appear/disappear transition
-        <Modal visible={visible} transparent animationType="fade">
-
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} accessibilityViewIsModal={true}>
             {/* Outer overlay — tapping here dismisses the modal */}
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.overlay}>

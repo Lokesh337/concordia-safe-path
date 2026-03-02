@@ -24,9 +24,10 @@
  *  - Add anonymous submission support (omit user_id or use a flag)
  */
 
-import { createContext, useEffect, useState } from 'react'
+import {createContext, useCallback, useEffect, useState} from 'react'
 import { supabase } from '../lib/supabase'
 import { useUser } from "../hooks/useUser";
+import {useNetwork} from "../hooks/useNetwork";
 
 const TABLE = 'incidents'
 
@@ -36,6 +37,8 @@ export function IncidentsProvider({ children }) {
     // The full list of incidents from the database
     const [incidents, setIncidents] = useState([])
     const { user } = useUser()
+    const { isOnline } = useNetwork()
+
 
     /**
      * Loads all incidents from the database and replaces local state.
@@ -43,11 +46,11 @@ export function IncidentsProvider({ children }) {
      * Note: Currently fetches ALL incidents with no filters or pagination.
      * TODO: Add pagination or a date range filter as the dataset grows.
      */
-    async function fetchIncidents() {
+    const fetchIncidents = useCallback(async () => {
         // Guard: don't attempt a fetch if there's no authenticated user.
         if (!user?.id) return
         try {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from(TABLE)
                 .select('*')
             // TODO: handle `error` here — currently silently ignored if fetch fails
@@ -55,7 +58,7 @@ export function IncidentsProvider({ children }) {
         } catch (error) {
             console.log('fetchIncidents:', error.message)
         }
-    }
+    }, [user?.id])
 
     /**
      * Fetches a single incident by its primary key. Returns the incident object, or undefined on error.
@@ -64,7 +67,7 @@ export function IncidentsProvider({ children }) {
      */
     async function fetchIncidentById(id) {
         try {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from(TABLE)
                 .select('*')
                 .eq('id', id)
@@ -107,7 +110,7 @@ export function IncidentsProvider({ children }) {
         }
 
         // Initial fetch when the user becomes available
-        fetchIncidents()
+        if (isOnline) fetchIncidents()
 
         // Set up a real-time Postgres subscription on the incidents table.
         // Any change to `incidents` in the database fires the callback below.

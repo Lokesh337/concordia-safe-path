@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {StyleSheet, View} from 'react-native'
 import MapView, {Marker} from 'react-native-maps'
-import * as Location from 'expo-location'
 import { useIncidents } from '../../hooks/useIncidents'
 import {CONCORDIA_BUILDINGS} from "../../constants/Buildings";
 
@@ -9,6 +8,8 @@ import ThemedView from '../../components/ThemedView'
 import ThemedText from '../../components/ThemedText'
 import ThemedLoader from '../../components/ThemedLoader'
 import {Colors} from "../../constants/Colors";
+import * as Location from 'expo-location'
+
 
 
 const Map = () => {
