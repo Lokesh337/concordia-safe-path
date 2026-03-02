@@ -4,16 +4,15 @@ import NetInfo from '@react-native-community/netinfo'
 export const NetworkContext = createContext()
 
 export function NetworkProvider({ children }) {
-    const [isOnline, setIsOnline] = useState(true)
+    const [isOnline, setIsOnline] = useState(null) // null = unknown, true = online, false = offline
 
     useEffect(() => {
-        // initial check
         NetInfo.fetch().then(state => {
-            setIsOnline(state.isConnected && state.isInternetReachable !== false)
+            setIsOnline(!!state.isConnected && state.isInternetReachable !== false)
         })
 
         const unsubscribe = NetInfo.addEventListener(state => {
-            setIsOnline(state.isConnected && state.isInternetReachable !== false)
+            setIsOnline(!!state.isConnected && state.isInternetReachable !== false)
         })
         return () => unsubscribe()
     }, [])

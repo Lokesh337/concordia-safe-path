@@ -45,8 +45,11 @@ const Incidents = () => {
 
     async function onRefresh() {
         setRefreshing(true)
-        await fetchIncidents()
-        setRefreshing(false)
+        try {
+            await fetchIncidents()
+        } finally {
+            setRefreshing(false)
+        }
     }
 
     // Filter by severity if set

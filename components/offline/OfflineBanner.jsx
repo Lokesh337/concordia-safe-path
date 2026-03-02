@@ -15,7 +15,7 @@ import {Colors} from "../../constants/Colors";
 const OfflineBanner = () => {
     const { isOnline } = useNetwork()
 
-    if (isOnline) return null
+    if (isOnline === null || isOnline) return null
 
     return (
         <View style={[styles.banner, {backgroundColor : Colors.attention}]}>

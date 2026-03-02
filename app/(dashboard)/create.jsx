@@ -44,9 +44,6 @@ const Create = () => {
     const [severity, setSeverity] = useState('low')
     const [description, setDescription] = useState("")
 
-
-
-    // const [userCoords, setUserCoords] = useState(null)
     const [pin, setPin] = useState(null)
 
     const [loading, setLoading] = useState(false)
@@ -54,9 +51,6 @@ const Create = () => {
     const { isOnline } = useNetwork()
     const { createIncident } = useIncidents()
     const router = useRouter()
-
-    // const { coords: userCoords } = useLocation()
-
 
     const [userCoords, setUserCoords] = useState(null)
 

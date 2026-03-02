@@ -9,7 +9,7 @@ import { Colors } from '../../constants/Colors'
 
 const OfflineActionModal = ({ visible, onClose }) => {
     return (
-        <Modal visible={visible} transparent animationType="fade">
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} accessibilityViewIsModal={true}>
             <View style={styles.overlay}>
                 <View style={styles.card}>
 
