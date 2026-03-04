@@ -59,6 +59,7 @@ export function useNotifications() {
                         : `Active ${incident.severity} incident within range of your location.`,
                     data: { incidentId: incident.id },
                     sound: true,
+                    ...(Platform.OS === 'android' ? { channelId: 'proximity-alerts' } : {}),
                 },
                 trigger: null, // fire immediately
             });

@@ -28,8 +28,8 @@ export default function DashboardLayout() {
 
     const { incidents } = useIncidents();
     const activeIncidents = incidents.filter(i => i.status === 'active' && i.latitude && i.longitude);
-    const { sendProximityNotification } = useNotifications();
-    const { activeAlert, dismissAlert } = useProximityAlerts(activeIncidents, sendProximityNotification);
+    const { sendProximityNotification, resetNotification } = useNotifications();
+    const { activeAlert, dismissAlert } = useProximityAlerts(activeIncidents, sendProximityNotification, resetNotification);
 
     // hide header/tabs when user is on preferences for the first time
     const isOnboarding = pathname === '/menu/preferences' && !profile?.preferences_completed

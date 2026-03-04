@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Location from 'expo-location';
-import { SEVERITY_RADIUS } from '../constants/Incidents';
+import { SEVERITY_RADIUS, WARNING_RADIUS } from '../constants/Incidents';
 
 // stage 2 = inside severity radius, stage 1 = within severity radius + WARNING_RADIUS
-const WARNING_RADIUS = 200;
 const RESET_DISTANCE = 500; // how far user needs to walk away before we re-alert
 
 // rough haversine — good enough for campus-scale distances
@@ -17,7 +16,7 @@ function getDistance(a, b) {
     return R * Math.sqrt(dLat * dLat + Math.cos(lat1) * Math.cos(lat2) * dLon * dLon);
 }
 
-export function useProximityAlerts(incidents, sendProximityNotification) {
+export function useProximityAlerts(incidents, sendProximityNotification, resetNotification) {
     // maps incident id → last shown stage (1 or 2)
     // ref not state — updating this shouldn't cause re-renders
     const alertedIncidents = useRef(new Map());
@@ -42,21 +41,24 @@ export function useProximityAlerts(incidents, sendProximityNotification) {
             longitude: position.coords.longitude,
         };
 
-        console.log('[proximity] position update', user);
+        __DEV__ && console.log('[proximity] position update received');
+
+        // build once per callback — makes all id lookups O(1) instead of O(n)
+        const incidentMap = new Map(incidents.map(i => [i.id, i]));
 
         // re-enable alerts for incidents the user has walked far enough away from
         for (const [id] of alertedIncidents.current.entries()) {
-            const incident = incidents.find(i => i.id === id);
+            const incident = incidentMap.get(id);
             if (!incident) {
                 alertedIncidents.current.delete(id);
-                console.log(`[proximity] incident ${id} resolved, removed from dismissed map`);
+                __DEV__ && console.log(`[proximity] incident ${id} resolved, removed from dismissed map`);
                 continue;
             }
             const dist = getDistance(user, { latitude: incident.latitude, longitude: incident.longitude });
-            console.log(`[proximity] dismissed incident ${id} — dist from incident: ${dist.toFixed(0)}m (resets at ${RESET_DISTANCE}m)`);
+            __DEV__ && console.log(`[proximity] dismissed incident ${id} — dist from incident: ${dist.toFixed(0)}m (resets at ${RESET_DISTANCE}m)`);
             if (dist > RESET_DISTANCE) {
                 alertedIncidents.current.delete(id);
-                console.log(`[proximity] incident ${id} reset — user moved far enough away`);
+                __DEV__ && console.log(`[proximity] incident ${id} reset — user moved far enough away`);
             }
         }
 
@@ -73,14 +75,14 @@ export function useProximityAlerts(incidents, sendProximityNotification) {
             const severityRadius = SEVERITY_RADIUS[incident.severity] ?? 100;
             const stage = dist <= severityRadius ? 2 : dist <= severityRadius + WARNING_RADIUS ? 1 : null;
 
-            console.log(`[proximity] incident ${incident.id} (${incident.severity}) — dist: ${dist.toFixed(0)}m, severityRadius: ${severityRadius}m, stage1threshold: ${severityRadius + WARNING_RADIUS}m, stage: ${stage}`);
+            __DEV__ && console.log(`[proximity] incident ${incident.id} (${incident.severity}) — dist: ${dist.toFixed(0)}m, severityRadius: ${severityRadius}m, stage1threshold: ${severityRadius + WARNING_RADIUS}m, stage: ${stage}`);
 
             if (stage === null) continue;
 
             // skip if we've already shown this stage or higher for this incident
             const shownStage = alertedIncidents.current.get(incident.id);
             if (shownStage !== undefined && stage <= shownStage) {
-                console.log(`[proximity] skipping incident ${incident.id} — already shown stage ${shownStage}`);
+                __DEV__ && console.log(`[proximity] skipping incident ${incident.id} — already shown stage ${shownStage}`);
                 continue;
             }
 
@@ -90,23 +92,23 @@ export function useProximityAlerts(incidents, sendProximityNotification) {
             }
         }
 
-        console.log('[proximity] closest qualifying incident:', closest ? `${closest.incident.id} stage ${closest.stage}` : 'none');
+        __DEV__ && console.log('[proximity] closest qualifying incident:', closest ? `${closest.incident.id} stage ${closest.stage}` : 'none');
 
         if (closest) {
             const prev = activeAlertRef.current;
-            console.log(`[proximity] prev: ${prev ? `incident ${prev.incident.id} stage ${prev.stage}` : 'null'}, new: stage ${closest.stage}`);
+            __DEV__ && console.log(`[proximity] prev: ${prev ? `incident ${prev.incident.id} stage ${prev.stage}` : 'null'}, new: stage ${closest.stage}`);
 
             // already showing this exact incident+stage — do nothing
             if (prev?.incident?.id === closest.incident.id && prev.stage === closest.stage) {
-                console.log('[proximity] same incident+stage already showing, skipping');
+                __DEV__ && console.log('[proximity] same incident+stage already showing, skipping');
                 return;
             }
             // don't downgrade a stage 2 to stage 1
             if (prev && prev.stage > closest.stage) {
-                console.log('[proximity] keeping existing higher-stage alert');
+                __DEV__ && console.log('[proximity] keeping existing higher-stage alert');
                 return;
             }
-            console.log(`[proximity] setting alert → stage ${closest.stage}`);
+            __DEV__ && console.log(`[proximity] setting alert → stage ${closest.stage}`);
             setActiveAlert(closest);
             // fire notification at same time as modal
             sendProximityNotification?.(closest.incident, closest.stage);
@@ -122,12 +124,12 @@ export function useProximityAlerts(incidents, sendProximityNotification) {
         async function startWatcher() {
             try {
                 const { status } = await Location.requestForegroundPermissionsAsync();
-                console.log('[proximity] location permission status:', status);
+                __DEV__ && console.log('[proximity] location permission status:', status);
                 if (status !== 'granted' || !active) return;
 
                 if (!active) return;
 
-                console.log('[proximity] starting watcher...');
+                __DEV__ && console.log('[proximity] starting watcher...');
                 watchRef.current = await Location.watchPositionAsync(
                     {
                         accuracy: Location.Accuracy.BestForNavigation,
@@ -135,16 +137,16 @@ export function useProximityAlerts(incidents, sendProximityNotification) {
                     },
                     (pos) => handlePositionRef.current(pos)
                 );
-                console.log('[proximity] watcher started');
+                __DEV__ && console.log('[proximity] watcher started');
             } catch (e) {
-                console.log('[proximity] watcher error:', e.message);
+                __DEV__ && console.log('[proximity] watcher error:', e.message);
             }
         }
 
         startWatcher();
 
         return () => {
-            console.log('[proximity] cleaning up watcher');
+            __DEV__ && console.log('[proximity] cleaning up watcher');
             active = false;
             watchRef.current?.remove();
         };
@@ -155,6 +157,8 @@ export function useProximityAlerts(incidents, sendProximityNotification) {
         // record stage shown — prevents re-showing same stage, allows upgrade to stage 2
         // stage 2 dismissed = fully muted until user walks 500m away
         alertedIncidents.current.set(activeAlert.incident.id, activeAlert.stage);
+        // reset push notification dedup key so it can re-fire if user re-enters the zone
+        resetNotification?.();
         setActiveAlert(null);
     }
 

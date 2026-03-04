@@ -1,13 +1,17 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import {SEVERITY_RADIUS} from "../../constants/Incidents";
+import {SEVERITY_RADIUS, WARNING_RADIUS} from "../../constants/Incidents";
+
 import {useRouter} from "expo-router";
 
 export default function ProximityAlertModal({ visible, incident, stage, onClose }) {
-    const isUrgent = stage === 2;
     const router = useRouter()
 
-    const distanceDisplay = SEVERITY_RADIUS[incident?.severity] + (stage === 1 ? 200 : 0);
+    // guard: incident/stage may be undefined during slide-out animation or before data loads
+    if (!visible || !incident || !stage) return null;
+
+    const isUrgent = stage === 2;
+    const distanceDisplay = (SEVERITY_RADIUS[incident.severity] || 0) + (stage === 1 ? WARNING_RADIUS : 0);
     // drives both copy and color — keeps the jsx clean, onClose just calls dismissAlert() no args needed
     const config = {
         backgroundColor: isUrgent ? Colors.severity.high : '#F59E0B',

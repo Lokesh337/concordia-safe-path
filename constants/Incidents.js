@@ -3,3 +3,5 @@ export const SEVERITY_RADIUS = {
     medium: 150,
     low: 50,
 }
+
+export const WARNING_RADIUS = 200;
