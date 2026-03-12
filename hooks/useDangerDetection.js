@@ -34,19 +34,24 @@ export const useDangerDetection = ({
      Route Safety Check
   =============================== */
   const isRouteUnsafe = (route) => {
-    if (!route) return false
+  if (!route) return false
 
-    return route.coordinates.some(point =>
-      verifiedIncidents.some(incident =>
-        getDistanceInMeters(
-          point.latitude,
-          point.longitude,
-          incident.latitude,
-          incident.longitude
-        ) < dangerRadius
+  return route.coordinates.some(point =>
+    verifiedIncidents.some(incident => {
+
+      const radius = dangerRadius[incident.severity] || 40
+
+      const distance = getDistanceInMeters(
+        point.latitude,
+        point.longitude,
+        incident.latitude,
+        incident.longitude
       )
-    )
-  }
+
+      return distance < radius
+    })
+  )
+}
 
 
   /* ===============================
@@ -54,32 +59,40 @@ export const useDangerDetection = ({
   =============================== */
 
   const isUserInDangerZone = useMemo(() => {
-    if (!location) return false
+  if (!location) return false
 
-    return verifiedIncidents.some(incident =>
-      getDistanceInMeters(
-        location.latitude,
-        location.longitude,
-        incident.latitude,
-        incident.longitude
-      ) < dangerRadius
+  return verifiedIncidents.some(incident => {
+
+    const radius = dangerRadius[incident.severity] || 40
+
+    const distance = getDistanceInMeters(
+      location.latitude,
+      location.longitude,
+      incident.latitude,
+      incident.longitude
     )
-  }, [location, verifiedIncidents, dangerRadius])
 
+    return distance < radius
+  })
+}, [location, verifiedIncidents, dangerRadius])
 
   const isDestinationInDangerZone = useMemo(() => {
-    if (!destination) return false
+  if (!destination) return false
 
-    return verifiedIncidents.some(incident =>
-      getDistanceInMeters(
-        destination.latitude,
-        destination.longitude,
-        incident.latitude,
-        incident.longitude
-      ) < dangerRadius
+  return verifiedIncidents.some(incident => {
+
+    const radius = dangerRadius[incident.severity] || 40
+
+    const distance = getDistanceInMeters(
+      destination.latitude,
+      destination.longitude,
+      incident.latitude,
+      incident.longitude
     )
-  }, [destination, verifiedIncidents, dangerRadius])
 
+    return distance < radius
+  })
+}, [destination, verifiedIncidents, dangerRadius])
 
   const selectedRoute = useMemo(
     () => routes.find(r => r.id === selectedRouteId),

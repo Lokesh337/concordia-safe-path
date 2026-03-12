@@ -1,27 +1,30 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
-import { StyleSheet, View, TouchableOpacity } from 'react-native'
-import MapView, { Marker, Circle, Polyline } from 'react-native-maps'
-import * as Location from 'expo-location'
+import { useEffect, useRef, useState } from "react"
+import { StyleSheet, View, TouchableOpacity } from "react-native"
+import MapView, { Marker, Circle, Polyline, Polygon } from "react-native-maps"
+import * as Location from "expo-location"
 
-import { useIncidents } from '../../hooks/useIncidents'
-import { useRoutes } from '../../hooks/useRoutes'
-import { useDangerDetection } from '../../hooks/useDangerDetection'
+import { useIncidents } from "../../hooks/useIncidents"
+import { useRoutes } from "../../hooks/useRoutes"
+import { useDangerDetection } from "../../hooks/useDangerDetection"
 
-import { CONCORDIA_BUILDINGS } from "../../constants/Buildings"
+import { CONCORDIA_BUILDINGS,SGW_CAMPUS_BOUNDARY } from "../../constants/Buildings"
 import { Colors } from "../../constants/Colors"
 
-import ThemedView from '../../components/ThemedView'
-import ThemedText from '../../components/ThemedText'
-import ThemedLoader from '../../components/ThemedLoader'
-import SearchBar from '../../components/SearchBar'
-import RoutesOptions from '../../components/RoutesOptions'
-import RouteResultsSheet from '../../components/RouteResultSheet'
+import ThemedView from "../../components/ThemedView"
+import ThemedText from "../../components/ThemedText"
+import ThemedLoader from "../../components/ThemedLoader"
+import SearchBar from "../../components/SearchBar"
+import RoutesOptions from "../../components/RoutesOptions"
+import RouteResultsSheet from "../../components/RouteResultSheet"
+
+const SEVERITY_RADIUS = {
+  high: 80,
+  medium: 60,
+  low: 40,
+}
 
 const Map = () => {
-  const DANGER_RADIUS = 35
 
-
-  /* STATE */
   const [location, setLocation] = useState(null)
   const [error, setError] = useState(null)
   const [destination, setDestination] = useState(null)
@@ -29,20 +32,13 @@ const Map = () => {
 
   const mapRef = useRef(null)
 
-
-  /* DATA */
   const { incidents } = useIncidents()
-
-  const verifiedIncidents = useMemo(
-    () => incidents.filter(i => i.verified),
-    [incidents]
-  )
-
   const { routes } = useRoutes(location, destination)
+
+  const activeIncidents = incidents
   const safeRoutes = routes
 
 
-  /*DANGER DETECTION HOOK*/
   const {
     isUserInDangerZone,
     isDestinationInDangerZone,
@@ -52,19 +48,18 @@ const Map = () => {
     destination,
     routes,
     selectedRouteId,
-    verifiedIncidents,
-    dangerRadius: DANGER_RADIUS,
+    verifiedIncidents: activeIncidents,
+    dangerRadius: SEVERITY_RADIUS,
   })
 
 
-  /*HELPER*/
   const getNearestBuilding = () => {
     if (!location) return null
 
     let nearest = null
     let minDistance = Infinity
 
-    CONCORDIA_BUILDINGS.forEach(building => {
+    CONCORDIA_BUILDINGS.forEach((building) => {
       const distance =
         Math.pow(location.latitude - building.latitude, 2) +
         Math.pow(location.longitude - building.longitude, 2)
@@ -78,16 +73,13 @@ const Map = () => {
     return nearest
   }
 
-
-  /*EFFECTs*/
-
   // Get user location
   useEffect(() => {
     async function getLocation() {
       const { status } = await Location.requestForegroundPermissionsAsync()
 
-      if (status !== 'granted') {
-        setError('Location permission denied')
+      if (status !== "granted") {
+        setError("Location permission denied")
         return
       }
 
@@ -98,6 +90,7 @@ const Map = () => {
     getLocation()
   }, [])
 
+
   // Auto select first route
   useEffect(() => {
     if (routes.length > 0) {
@@ -105,9 +98,10 @@ const Map = () => {
     }
   }, [routes])
 
+
   // Fit map to selected route
   useEffect(() => {
-    const selectedRoute = routes.find(r => r.id === selectedRouteId)
+    const selectedRoute = routes.find((r) => r.id === selectedRouteId)
 
     if (!selectedRoute || !mapRef.current) return
 
@@ -118,7 +112,82 @@ const Map = () => {
   }, [selectedRouteId, routes])
 
 
-  /*LOADING / ERROR*/
+  const buildingMarkers = CONCORDIA_BUILDINGS.map((building) => (
+    <Marker
+      key={building.name}
+      coordinate={{
+        latitude: building.latitude,
+        longitude: building.longitude,
+      }}
+      title={building.name}
+    >
+      <View style={styles.buildingMarker}>
+        <View style={styles.buildingMarkerInner} />
+      </View>
+    </Marker>
+  ))
+
+  const campusBoundary = (
+    <Polygon
+      coordinates={SGW_CAMPUS_BOUNDARY}
+      strokeColor="rgba(0,120,255,0.8)"
+      fillColor="rgba(252, 252, 252, 0.08)"
+      strokeWidth={2}
+    />
+  )
+
+
+  const incidentMarkers = incidents
+    .filter((i) => i.latitude && i.longitude)
+    .map((incident) => (
+      <Marker
+        key={incident.id}
+        coordinate={{
+          latitude: incident.latitude,
+          longitude: incident.longitude,
+        }}
+        title={incident.type}
+        description={incident.location}
+        pinColor={Colors.severity[incident.severity]}
+      />
+    ))
+
+
+  const incidentZones = incidents
+    .filter((i) => i.latitude && i.longitude)
+    .map((incident) => {
+      const radius = SEVERITY_RADIUS[incident.severity] || 40
+
+      return (
+        <Circle
+          key={`zone-${incident.id}`}
+          center={{
+            latitude: incident.latitude,
+            longitude: incident.longitude,
+          }}
+          radius={radius}
+          fillColor={Colors.severityFill[incident.severity]}
+          strokeColor={Colors.severity[incident.severity]}
+          strokeWidth={2}
+        />
+      )
+    })
+
+
+  const routeLines = routes.map((route) => {
+    const isSelected = route.id === selectedRouteId
+
+    return (
+      <Polyline
+        key={route.id}
+        coordinates={route.coordinates}
+        strokeWidth={isSelected ? 6 : 4}
+        strokeColor={isSelected ? "#2ecc71" : "#9CA3AF"}
+        zIndex={isSelected ? 2 : 1}
+      />
+    )
+  })
+
 
   if (error) {
     return (
@@ -136,11 +205,10 @@ const Map = () => {
     )
   }
 
-
-  /*UI*/
-
   return (
     <ThemedView style={[styles.container, { padding: 0 }]} safe>
+
+      {/* USER IN DANGER MODE */}
 
       {isUserInDangerZone ? (
         <>
@@ -155,6 +223,7 @@ const Map = () => {
               style={styles.safeButton}
               onPress={() => {
                 const nearest = getNearestBuilding()
+
                 if (nearest) {
                   setDestination({
                     latitude: nearest.latitude,
@@ -186,6 +255,9 @@ const Map = () => {
         </>
       )}
 
+
+      {/* MAP */}
+
       <MapView
         ref={mapRef}
         style={[styles.map, StyleSheet.absoluteFillObject]}
@@ -201,117 +273,74 @@ const Map = () => {
         showsMyLocationButton
         zoomControlEnabled
       >
-
-        {CONCORDIA_BUILDINGS.map((building) => (
-          <Marker
-            key={building.name}
-            coordinate={{
-              latitude: building.latitude,
-              longitude: building.longitude
-            }}
-            title={building.name}
-          >
-            <View style={styles.buildingMarker}>
-              <View style={styles.buildingMarkerInner} />
-            </View>
-          </Marker>
-        ))}
-
-        {incidents
-          .filter(i => i.latitude && i.longitude)
-          .map((incident) => (
-            <Marker
-              key={incident.id}
-              coordinate={{
-                latitude: incident.latitude,
-                longitude: incident.longitude
-              }}
-              title={incident.type}
-              description={incident.location}
-              pinColor={Colors.severity[incident.severity]}
-            />
-          ))
-        }
-
-        {verifiedIncidents.map((incident) => (
-          <Circle
-            key={`zone-${incident.id}`}
-            center={{
-              latitude: incident.latitude,
-              longitude: incident.longitude,
-            }}
-            radius={DANGER_RADIUS}
-            fillColor="rgba(255,0,0,0.25)"
-            strokeColor="red"
-            strokeWidth={2}
-          />
-        ))}
-        {routes.map((route) => {
-  const isSelected = route.id === selectedRouteId
-
-  return (
-    <Polyline
-      key={route.id}
-      coordinates={route.coordinates}
-      strokeWidth={isSelected ? 6 : 4}
-      strokeColor={isSelected ? "#2ecc71" : "#9CA3AF"}
-      zIndex={isSelected ? 2 : 1}
-    />
-  )
-})}
+        {buildingMarkers}
+        {incidentMarkers}
+        {incidentZones}
+        {routeLines}
+        {campusBoundary}
 
         <RoutesOptions
           routes={safeRoutes.length > 0 ? safeRoutes : routes}
           selectedRouteId={selectedRouteId}
           onSelectRoute={setSelectedRouteId}
         />
-
       </MapView>
 
-      {!isUserInDangerZone && !isDestinationInDangerZone && isSelectedRouteUnsafe && (
-          <View style={styles.routeWarningContainer}>
-              <ThemedText style={styles.routeWarningText}>
-                  ⚠ This route passes through a danger zone.
-              </ThemedText>
 
-              <ThemedText style={styles.routeSubText}>
-                {routes.length > 1
-                  ? "We recommend choosing an alternative route."
-                  : "No safer alternative routes were found. Please stay alert and consider changing your destination."}
-              </ThemedText>
+      {/* ROUTE WARNING */}
+
+      {!isUserInDangerZone &&
+        !isDestinationInDangerZone &&
+        isSelectedRouteUnsafe && (
+          <View style={styles.routeWarningContainer}>
+            <ThemedText style={styles.routeWarningText}>
+              ⚠ This route passes through a danger zone.
+            </ThemedText>
+
+            <ThemedText style={styles.routeSubText}>
+              {routes.length > 1
+                ? "We recommend choosing an alternative route."
+                : "No safer alternative routes were found. Please stay alert and consider changing your destination."}
+            </ThemedText>
           </View>
-      )}
+        )}
+
+
+      {/* ROUTE SHEET */}
 
       <RouteResultsSheet
         routes={safeRoutes.length > 0 ? safeRoutes : routes}
         selectedRouteId={selectedRouteId}
         onSelectRoute={setSelectedRouteId}
       />
-
     </ThemedView>
   )
 }
 
 export default Map
 
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
+
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
+
   buildingMarker: {
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: Colors.marker.building,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
     borderColor: Colors.marker.building,
   },
+
   buildingMarkerInner: {
     width: 8,
     height: 8,
@@ -359,49 +388,50 @@ const styles = StyleSheet.create({
   },
 
   destinationWarningContainer: {
-  position: "absolute",
-  top: 80,
-  alignSelf: "center",
-  backgroundColor: "#FEE2E2",
-  paddingVertical: 12,
-  paddingHorizontal: 20,
-  borderRadius: 12,
-  elevation: 5,
-  zIndex: 11,
-},
+    position: "absolute",
+    top: 80,
+    alignSelf: "center",
+    backgroundColor: "#FEE2E2",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    elevation: 5,
+    zIndex: 11,
+  },
 
-destinationWarningText: {
-  color: "#B91C1C",
-  fontWeight: "bold",
-  textAlign: "center",
-},
+  destinationWarningText: {
+    color: "#B91C1C",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
 
-destinationSubText: {
-  color: "#7F1D1D",
-  textAlign: "center",
-  marginTop: 4,
-},
-routeWarningContainer: {
-  position: "absolute",
-  bottom: 260,
-  alignSelf: "center",
-  backgroundColor: "#FEE2E2",
-  paddingVertical: 10,
-  paddingHorizontal: 20,
-  borderRadius: 12,
-  elevation: 5,
-  zIndex: 20,
-},
+  destinationSubText: {
+    color: "#7F1D1D",
+    textAlign: "center",
+    marginTop: 4,
+  },
 
-routeWarningText: {
-  color: "#B91C1C",
-  fontWeight: "bold",
-  textAlign: "center",
-},
+  routeWarningContainer: {
+    position: "absolute",
+    bottom: 260,
+    alignSelf: "center",
+    backgroundColor: "#FEE2E2",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    elevation: 5,
+    zIndex: 20,
+  },
 
-routeSubText: {
-  color: "#7F1D1D",
-  textAlign: "center",
-  marginTop: 4,
-},
+  routeWarningText: {
+    color: "#B91C1C",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+
+  routeSubText: {
+    color: "#7F1D1D",
+    textAlign: "center",
+    marginTop: 4,
+  },
 })
