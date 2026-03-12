@@ -1,18 +1,18 @@
 import React from "react";
 import { View } from "react-native";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
-import { CONCORDIA_BUILDINGS } from "../constants/Buildings";
+import { SEARCH_LOCATIONS } from "../constants/SearchBarLocations";
 
 const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY
 const SearchBar = ({ onSelect }) => {
 
   // Convert your buildings into Google predefined format
-  const campusPlaces = CONCORDIA_BUILDINGS.map((building) => ({
-    description: building.name,
+  const campusPlaces = SEARCH_LOCATIONS.map((location) => ({
+    description: location.name,
     geometry: {
       location: {
-        lat: building.latitude,
-        lng: building.longitude,
+        lat: location.latitude,
+        lng: location.longitude,
       },
     },
   }));
