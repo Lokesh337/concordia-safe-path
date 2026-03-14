@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { SEVERITY_RADIUS, WARNING_RADIUS } from '../constants/Incidents';
 
@@ -108,9 +107,11 @@ export function useProximityAlerts(incidents, sendProximityNotification, resetNo
                 __DEV__ && console.log('[proximity] keeping existing higher-stage alert');
                 return;
             }
+
             __DEV__ && console.log(`[proximity] setting alert → stage ${closest.stage}`);
+            // record immediately so rapid position updates don't re-trigger before user dismisses
+            alertedIncidents.current.set(closest.incident.id, closest.stage);
             setActiveAlert(closest);
-            // fire notification at same time as modal
             sendProximityNotification?.(closest.incident, closest.stage);
         }
     }
@@ -154,8 +155,7 @@ export function useProximityAlerts(incidents, sendProximityNotification, resetNo
 
     function dismissAlert() {
         if (!activeAlert) return;
-        // record stage shown — prevents re-showing same stage, allows upgrade to stage 2
-        // stage 2 dismissed = fully muted until user walks 500m away
+        // stage already recorded on show — this ensures it's set even if somehow missed
         alertedIncidents.current.set(activeAlert.incident.id, activeAlert.stage);
         // reset push notification dedup key so it can re-fire if user re-enters the zone
         resetNotification?.();
