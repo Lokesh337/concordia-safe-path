@@ -30,7 +30,7 @@ const SearchBar = ({ onSelect, onClear }) => {
   }
 
   return (
-      <View style={{ position: "absolute", top: 60, width: "100%", zIndex: 20 }}>
+      <View style={{ width: "100%", zIndex: 20, marginTop: 0}}>
         <View style={{ position: "relative" }}>
           <GooglePlacesAutocomplete
               ref={ref}
@@ -80,20 +80,24 @@ const SearchBar = ({ onSelect, onClear }) => {
         }}
 
               styles={{
-                container: { flex: 0 },
+                container: { flex: 0, marginBottom: 0 },
                 textInput: {
-                  marginHorizontal: 16,
-                  borderRadius: 12,
+                  // marginHorizontal: 16,
                   height: 50,
                   paddingHorizontal: 15,
                   paddingRight: 45,
                   backgroundColor: "white",
                 },
                 listView: {
-                  marginHorizontal: 16,
+                  position: 'absolute',
+                  top: 50,
+                  left: 0,
+                  right: 0,
                   borderRadius: 12,
                   backgroundColor: "white",
                   elevation: 4,
+                  zIndex: 50,
+
                 },
                 row: {
                   paddingHorizontal: 15,

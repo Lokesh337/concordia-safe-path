@@ -187,8 +187,7 @@ const Map = () => {
   }
 
   return (
-      <ThemedView style={[styles.container, { padding: 0 }]} safe={true}>
-
+      <ThemedView style={[styles.container, { padding: 0 }]}>
         {(isUserInDangerZone || navigatingToSafety) && (
             <>
               {safeZoneMessage && !navigatingToSafety && (
@@ -257,7 +256,7 @@ const Map = () => {
         {/* MAP */}
         <MapView
             ref={mapRef}
-            style={[styles.map, StyleSheet.absoluteFillObject]}
+            style={[styles.map]}
             initialRegion={{
               latitude: GUY_METRO.latitude,
               longitude: GUY_METRO.longitude,
@@ -336,20 +335,18 @@ const Map = () => {
         </MapView>
 
 
-        {/* TODO: route warning — uncomment when ready to enable
-            {!isUserInDangerZone && !isDestinationInDangerZone && isSelectedRouteUnsafe && (
-                <View style={styles.routeWarningContainer}>
-                    <ThemedText style={styles.routeWarningText}>
-                        ⚠ This route passes through a danger zone.
-                    </ThemedText>
-                    <ThemedText style={styles.routeSubText}>
-                        {routes.length > 1
-                            ? 'We recommend choosing an alternative route.'
-                            : 'No safer alternative routes were found. Please stay alert and consider changing your destination.'}
-                    </ThemedText>
-                </View>
-            )}
-            */}
+        {!isUserInDangerZone && !navigatingToSafety && !isDestinationInDangerZone && isSelectedRouteUnsafe && (
+            <View style={styles.routeWarningContainer}>
+              <ThemedText style={styles.routeWarningText}>
+                ⚠ This route passes through a danger zone.
+              </ThemedText>
+              <ThemedText style={styles.routeSubText}>
+                {routes.length > 1
+                    ? 'We recommend choosing an alternative route.'
+                    : 'No safer alternative routes were found. Please stay alert and consider changing your destination.'}
+              </ThemedText>
+            </View>
+        )}
 
 
       {/* ROUTE SHEET */}
