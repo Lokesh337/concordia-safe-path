@@ -13,12 +13,10 @@
 --   3. Teammates pull and re-run the file in their Supabase project
 -- ============================================================
 
-
 -- ============================================================
 -- EXTENSIONS
 -- ============================================================
 create extension if not exists "uuid-ossp";
-
 
 -- ============================================================
 -- TABLE: profiles
@@ -26,42 +24,60 @@ create extension if not exists "uuid-ossp";
 -- Stores app-specific user data beyond what Supabase auth provides.
 -- ============================================================
 create table if not exists profiles (
-                                        id                  uuid primary key references auth.users(id) on delete cascade,
-    role                text default 'student' check (role in ('student', 'staff', 'guest')),
-    username            text,
-    mobility_needs      boolean default false,
-    anxiety_triggers    boolean default false,
-    elevator_access     boolean default false,
-    high_contrast       boolean default false,
-    reduced_motion      boolean default false,
-    alert_categories    text[] default array[]::text[],
+    id                      uuid primary key references auth.users(id) on delete cascade,
+    role                    text default 'student' check (role in ('student', 'staff', 'guest')),
+    username                text,
+    mobility_needs          boolean default false,
+    anxiety_triggers        boolean default false,
+    elevator_access         boolean default false,
+    high_contrast           boolean default false,
+    reduced_motion          boolean default false,
+    alert_categories        text[] default array[]::text[],
     location_consent        boolean default false,
     emergency_contacts      jsonb default '[]'::jsonb,
     preferences_completed   boolean default false,  -- true once user completes or skips the onboarding preferences screen
+    -- Notification preferences (added for preferences page)
+    dark_mode               boolean default false,
+    accessibility_routing   boolean default false,
+    distance_normal         int default 500,
+    distance_silent         int default 1000,
+    notif_protest           text default 'normal' check (notif_protest in ('normal', 'silent', 'muted')),
+    notif_road              text default 'normal' check (notif_road in ('normal', 'silent', 'muted')),
+    notif_construction      text default 'normal' check (notif_construction in ('normal', 'silent', 'muted')),
+    notif_vandalism         text default 'normal' check (notif_vandalism in ('normal', 'silent', 'muted')),
     created_at              timestamptz default now()
-    );
+);
 
 alter table profiles enable row level security;
+
+-- Add new columns if they don't exist yet (safe to re-run)
+alter table profiles add column if not exists dark_mode boolean default false;
+alter table profiles add column if not exists accessibility_routing boolean default false;
+alter table profiles add column if not exists distance_normal int default 500;
+alter table profiles add column if not exists distance_silent int default 1000;
+alter table profiles add column if not exists notif_protest text default 'normal';
+alter table profiles add column if not exists notif_road text default 'normal';
+alter table profiles add column if not exists notif_construction text default 'normal';
+alter table profiles add column if not exists notif_vandalism text default 'normal';
 
 -- Drop and recreate policies to ensure they are always up to date
 drop policy if exists "Users can view own profile" on profiles;
 create policy "Users can view own profile"
     on profiles for select
-                                    using (auth.uid() = id);
+    using (auth.uid() = id);
 
 drop policy if exists "Users can update own profile" on profiles;
 create policy "Users can update own profile"
     on profiles for update
-                                    using (auth.uid() = id)
-                    with check (auth.uid() = id);
-
+    using (auth.uid() = id)
+    with check (auth.uid() = id);
 
 -- ============================================================
 -- TABLE: incidents
 -- Core table for all reported campus incidents.
 -- ============================================================
 create table if not exists incidents (
-                                         id                      uuid primary key default gen_random_uuid(),
+    id                      uuid primary key default gen_random_uuid(),
     user_id                 uuid references auth.users(id) on delete cascade not null,
     type                    text not null check (type in ('protest', 'construction', 'emergency', 'blockade', 'accessibility', 'safety')),
     description             text,
@@ -74,23 +90,23 @@ create table if not exists incidents (
     followed_by             uuid[] default array[]::uuid[],
     status                  text not null default 'active' check (status in ('active', 'resolved')),
     verification_status     text default 'submitted' check (
-                                                               verification_status in (
-                                                               'submitted',
-                                                               'under_review',
-                                                               'verified_by_users',
-                                                               'verified_by_campus',
-                                                               'resolved'
-                                                                                      )
+        verification_status in (
+            'submitted',
+            'under_review',
+            'verified_by_users',
+            'verified_by_campus',
+            'resolved'
+        )
     ),
     created_at              timestamptz default now()
-    );
+);
 
 alter table incidents enable row level security;
 
 drop policy if exists "Anyone can view incidents" on incidents;
 create policy "Anyone can view incidents"
     on incidents for select
-                                     using (true);
+    using (true);
 
 drop policy if exists "Logged in users can create incidents" on incidents;
 create policy "Logged in users can create incidents"
@@ -100,13 +116,13 @@ create policy "Logged in users can create incidents"
 drop policy if exists "Logged in users can upvote incidents" on incidents;
 create policy "Logged in users can upvote incidents"
     on incidents for update
-                                                 using (auth.uid() is not null)
-                     with check (auth.uid() is not null);
+    using (auth.uid() is not null)
+    with check (auth.uid() is not null);
 
 drop policy if exists "Users can delete their own incidents" on incidents;
 create policy "Users can delete their own incidents"
     on incidents for delete
-using (auth.uid() = user_id);
+    using (auth.uid() = user_id);
 
 -- Enable realtime
 do $$
@@ -117,30 +133,29 @@ begin
         and tablename = 'incidents'
     ) then
         alter publication supabase_realtime add table incidents;
-end if;
+    end if;
 end $$;
 
 alter table incidents replica identity full;
-
 
 -- ============================================================
 -- TABLE: comments
 -- Supporting details added to existing incident reports.
 -- ============================================================
 create table if not exists comments (
-                                        id          uuid primary key default gen_random_uuid(),
+    id          uuid primary key default gen_random_uuid(),
     incident_id uuid references incidents(id) on delete cascade not null,
     user_id     uuid references auth.users(id) on delete cascade not null,
     content     text not null,
     created_at  timestamptz default now()
-    );
+);
 
 alter table comments enable row level security;
 
 drop policy if exists "Anyone can view comments" on comments;
 create policy "Anyone can view comments"
     on comments for select
-                                    using (true);
+    using (true);
 
 drop policy if exists "Logged in users can create comments" on comments;
 create policy "Logged in users can create comments"
@@ -150,8 +165,41 @@ create policy "Logged in users can create comments"
 drop policy if exists "Users can delete their own comments" on comments;
 create policy "Users can delete their own comments"
     on comments for delete
-using (auth.uid() = user_id);
+    using (auth.uid() = user_id);
 
+-- ============================================================
+-- TABLE: emergency_contacts
+-- Per-user emergency contacts for the resources page.
+-- ============================================================
+create table if not exists emergency_contacts (
+    id              uuid primary key default gen_random_uuid(),
+    user_id         uuid references auth.users(id) on delete cascade not null,
+    name            text not null,
+    phone_number    text not null,
+    created_at      timestamptz default now()
+);
+
+alter table emergency_contacts enable row level security;
+
+drop policy if exists "Users can view own emergency contacts" on emergency_contacts;
+create policy "Users can view own emergency contacts"
+    on emergency_contacts for select
+    using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own emergency contacts" on emergency_contacts;
+create policy "Users can insert own emergency contacts"
+    on emergency_contacts for insert
+    with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update own emergency contacts" on emergency_contacts;
+create policy "Users can update own emergency contacts"
+    on emergency_contacts for update
+    using (auth.uid() = user_id);
+
+drop policy if exists "Users can delete own emergency contacts" on emergency_contacts;
+create policy "Users can delete own emergency contacts"
+    on emergency_contacts for delete
+    using (auth.uid() = user_id);
 
 -- ============================================================
 -- TRIGGER: auto-create profile on signup
@@ -161,13 +209,13 @@ using (auth.uid() = user_id);
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-insert into public.profiles (id, role, username)
-values (
-           new.id,
-           coalesce(new.raw_user_meta_data->>'role', 'student'),
-           new.raw_user_meta_data->>'username'
-       );
-return new;
+    insert into public.profiles (id, role, username)
+    values (
+        new.id,
+        coalesce(new.raw_user_meta_data->>'role', 'student'),
+        new.raw_user_meta_data->>'username'
+    );
+    return new;
 end;
 $$ language plpgsql security definer;
 
