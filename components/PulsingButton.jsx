@@ -6,7 +6,7 @@ import { Colors } from '../constants/Colors';
 // pulsing button with radar waves radiating outward
 // shown on the map when the user is inside an incident zone
 // props: onPress, label (defaults to find safe zone), color (defaults to red)
-export default function PulsingButton({ onPress, label = 'Safe Zone Now', color = Colors.primaryDark ?? '#E53935' }) {
+export default function PulsingButton({ onPress, label = 'Safe Zone Now', color = Colors.primary?? '#E53935' }) {
     const wave1 = useRef(new Animated.Value(0)).current;
     const wave2 = useRef(new Animated.Value(0)).current;
     const wave3 = useRef(new Animated.Value(0)).current;

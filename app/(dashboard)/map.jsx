@@ -188,49 +188,7 @@ const Map = () => {
 
   return (
       <ThemedView style={[styles.container, { padding: 0 }]}>
-        {(isUserInDangerZone || navigatingToSafety) && (
-            <>
-              {safeZoneMessage && !navigatingToSafety && (
-                  <View style={styles.warningContainer}>
-                    <ThemedText style={styles.warningText}>
-                      {safeZoneMessage}
-                    </ThemedText>
-                  </View>
-              )}
-              {navigatingToSafety ? (
-                  __DEV__ && console.log('[map] rendering I AM SAFE NOW') ||
-                  <TouchableOpacity
-                      style={styles.safeZoneButton}
-                      onPress={() => {
-                        setDestination(null)
-                        setNavigatingToSafety(false)
-                        setSafeZoneMessage(null)
-                        setSelectedRouteId(null)
-                        setRoutesDismissed(true)
-                      }}
-                      activeOpacity={0.85}
-                  >
-                    <ThemedText style={styles.safeZoneButtonText}>I AM SAFE NOW</ThemedText>
-                  </TouchableOpacity>
-              ) : (
-                  <PulsingButton
-                      label="SAFE ZONE NOW"
-                      onPress={() => {
-                        const nearest = getNearestBuilding()
-                        if (nearest) {
-                          originSnapshot.current = location
-                          setDestination({ latitude: nearest.latitude, longitude: nearest.longitude })
-                          setNavigatingToSafety(true)
-                          setRoutesDismissed(false)
 
-                        } else {
-                          setSafeZoneMessage('⚠ All nearby buildings are in a danger zone. Please stay put.')
-                        }
-                      }}
-                  />
-              )}
-            </>
-        )}
         {!isUserInDangerZone && (
             <>
               {isDestinationInDangerZone && (
@@ -334,6 +292,49 @@ const Map = () => {
           ))}
         </MapView>
 
+        {(isUserInDangerZone || navigatingToSafety) && (
+            <>
+              {safeZoneMessage && !navigatingToSafety && (
+                  <View style={styles.warningContainer}>
+                    <ThemedText style={styles.warningText}>
+                      {safeZoneMessage}
+                    </ThemedText>
+                  </View>
+              )}
+              {navigatingToSafety ? (
+                  __DEV__ && console.log('[map] rendering I AM SAFE NOW') ||
+                  <TouchableOpacity
+                      style={styles.safeZoneButton}
+                      onPress={() => {
+                        setDestination(null)
+                        setNavigatingToSafety(false)
+                        setSafeZoneMessage(null)
+                        setSelectedRouteId(null)
+                        setRoutesDismissed(true)
+                      }}
+                      activeOpacity={0.85}
+                  >
+                    <ThemedText style={styles.safeZoneButtonText}>I AM SAFE NOW</ThemedText>
+                  </TouchableOpacity>
+              ) : (
+                  <PulsingButton
+                      label="SAFE ZONE NOW"
+                      onPress={() => {
+                        const nearest = getNearestBuilding()
+                        if (nearest) {
+                          originSnapshot.current = location
+                          setDestination({ latitude: nearest.latitude, longitude: nearest.longitude })
+                          setNavigatingToSafety(true)
+                          setRoutesDismissed(false)
+
+                        } else {
+                          setSafeZoneMessage('⚠ All nearby buildings are in a danger zone. Please stay put.')
+                        }
+                      }}
+                  />
+              )}
+            </>
+        )}
 
         {!isUserInDangerZone && !navigatingToSafety && !isDestinationInDangerZone && isSelectedRouteUnsafe && (
             <View style={styles.routeWarningContainer}>
