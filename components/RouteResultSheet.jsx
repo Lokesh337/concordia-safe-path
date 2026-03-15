@@ -1,13 +1,17 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 
-const RouteResultsSheet = ({ routes, selectedRouteId, onSelectRoute }) => {
+const RouteResultsSheet = ({ routes, selectedRouteId, onSelectRoute, onDismiss }) => {
   if (!routes || routes.length === 0) return null;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Available Safe Paths</Text>
-
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Available Safe Paths</Text>
+        <TouchableOpacity onPress={onDismiss}>
+          <Text style={styles.dismiss}>✕</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView>
         {routes.map((route, index) => {
           const isSelected = route.id === selectedRouteId;
@@ -51,10 +55,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 8,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  dismiss: {
+    fontSize: 16,
+    color: "#555",
+    padding: 4,
+  },
   header: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 10,
   },
   routeItem: {
     padding: 12,

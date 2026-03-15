@@ -33,6 +33,13 @@ export const Colors = {
         low:    '#6bcb77',   // green
     },
 
+    // Incident severity fill (for danger zone circles on map)
+    severityFill: {
+        low:    'rgba(0,200,0,0.2)',
+        medium: 'rgba(255,200,0,0.2)',
+        high:   'rgba(255,0,0,0.2)',
+    },
+
     // Incident type
     type: {
         protest:      '#e74c3c',
