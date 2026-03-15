@@ -41,13 +41,18 @@ export default function DashboardLayout() {
                 {!hideHeader && <ThemedHeader />}
                 <OfflineBanner />
                 <Tabs
-                    screenOptions={{
+                    screenOptions={({ route }) => ({
                         headerShown: false,
                         // tabBarStyle: { backgroundColor: 'blue', paddingTop: TAB_BAR_PADDING_TOP, height: insets.bottom + 65},
-                        tabBarStyle: isOnboarding ? { display: 'none' } : { backgroundColor: theme.navBackground, paddingTop: 10, height: 100 },
+                        tabBarStyle: isOnboarding ? { display: 'none' } : { backgroundColor: theme.navBackground, height: 100 },
                         tabBarActiveTintColor: theme.iconColorFocused,
                         tabBarInactiveTintColor: theme.iconColor,
-                    }}
+                        tabBarItemStyle: {
+                            borderTopWidth: 3,
+                            paddingTop: 10,
+                            borderTopColor: pathname === `/${route.name}` ? theme.iconColorFocused : 'transparent',
+                        },
+                    })}
                 >
                     <Tabs.Screen
                         name="incidents"
@@ -62,6 +67,40 @@ export default function DashboardLayout() {
                             ) }}
                     />
                     <Tabs.Screen
+                        name="menu/resources"
+                        options={{
+                            title: "Resources",
+                            tabBarItemStyle: {
+                                borderTopWidth: 3,
+                                paddingTop: 10,
+                                borderTopColor: pathname === '/menu/resources' ? theme.iconColorFocused : 'transparent',
+                            },
+                            tabBarIcon: ({focused}) => (
+                                <Ionicons name="medkit" size={30} color={focused ? theme.iconColorFocused : theme.iconColor} />
+                            ),
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="create"
+                        options={{
+                            title: "Report",
+                            tabBarItemStyle: {
+                                borderTopWidth: 3,
+                                paddingTop: 10,
+                                borderTopColor: pathname === '/create' ? theme.iconColorFocused : 'transparent',
+                            },
+                            tabBarIcon: ({focused}) => (
+                                <Ionicons name="warning" size={30} color={focused ? theme.iconColorFocused : theme.iconColor} />
+                            ),
+                        }}
+                        listeners={{
+                            tabPress: (e) => {
+                                e.preventDefault()
+                                setTypeModalOpen(true)
+                            },
+                        }}
+                    />
+                    <Tabs.Screen
                         name="map"
                         options={{
                             title: "Map",
@@ -74,10 +113,8 @@ export default function DashboardLayout() {
                             )
                         }}
                     />
-                    <Tabs.Screen
-                        name="create"
-                        options={{ href: null }}
-                    />
+
+
                     <Tabs.Screen
                         name="incidents/[id]"
                         options={{ href: null }}
@@ -90,10 +127,7 @@ export default function DashboardLayout() {
                         name="menu/profile"
                         options={{ href: null }}
                     />
-                    <Tabs.Screen
-                        name="menu/resources"
-                        options={{ href: null }}
-                    />
+
                     <Tabs.Screen
                         name="notifications"
                         options={{ href: null }}
@@ -111,22 +145,6 @@ export default function DashboardLayout() {
                         router.push({ pathname: '/create', params: { type } })
                     }}
                 />
-                {!isOnboarding && pathname !== '/create' && (
-                    <TouchableOpacity
-                        style={styles.emergencyFab}
-                        onPress={() => router.push('/menu/resources')}
-                    >
-                        <Ionicons name="medkit-outline" size={28} color="#fff" />
-                    </TouchableOpacity>
-                )}
-                {!isOnboarding && pathname !== '/create' && (
-                    <TouchableOpacity
-                        style={[styles.createFab, ]}
-                        onPress={() => setTypeModalOpen(true)}
-                    >
-                        <Ionicons name="warning" size={30} color={Colors.attention} />
-                    </TouchableOpacity>
-                )}
                 <ProximityAlertModal
                     visible={!!activeAlert}
                     incident={activeAlert?.incident}
