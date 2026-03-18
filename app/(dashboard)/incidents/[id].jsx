@@ -28,12 +28,14 @@ const IncidentDetails = () => {
     const [incident, setIncident] = useState(null)
     const { id } = useLocalSearchParams()
     const { fetchIncidentById } = useIncidents()
-    const [isFollowing, setIsFollowing] = useState(false); // track follow state
+    const [isFollowing, setIsFollowing] = useState(false)
+    const [followLoading, setFollowLoading] = useState(false)
 
     useEffect(() => {
         async function loadIncident() {
             const data = await fetchIncidentById(id)
             setIncident(data)
+            setIsFollowing(data.followed_by?.includes(user.id) ?? false)
         }
         loadIncident()
     }, [id])
@@ -130,6 +132,30 @@ const IncidentDetails = () => {
         setVoteLoading(false)
     }
 
+    async function handleFollow() {
+        if (followLoading) return
+        setFollowLoading(true)
+
+        const currentList = incident.followed_by ?? []
+        const alreadyFollowing = currentList.includes(user.id)
+        const newList = alreadyFollowing
+            ? currentList.filter(uid => uid !== user.id)
+            : [...currentList, user.id]
+
+        const { error } = await supabase
+            .from('incidents')
+            .update({ followed_by: newList })
+            .eq('id', id)
+
+        if (!error) {
+            setIncident(prev => ({ ...prev, followed_by: newList }))
+            setIsFollowing(!alreadyFollowing)
+        } else {
+            __DEV__ && console.log('[id] follow error:', error.message)
+        }
+        setFollowLoading(false)
+    }
+
         
 
     if (!incident) {
@@ -146,57 +172,78 @@ const IncidentDetails = () => {
             {/* ICON */}
             {/* HEADER */}
             <View style={styles.header}>
-            {/* ICON */}
-            <View
-                style={[
-                styles.iconBox,
-                { backgroundColor: Colors.type[incident.type] ?? "#888" },
-                ]}
-            >
-                <Ionicons
-                name={Icons.type[incident.type] ?? "alert-circle"}
-                size={36}
-                color="#fff"
-                />
-            </View>
+                {/* ICON */}
+                <View
+                    style={[
+                    styles.iconBox,
+                    { backgroundColor: Colors.type[incident.type] ?? "#888" },
+                    ]}
+                >
+                    <Ionicons
+                    name={Icons.type[incident.type] ?? "alert-circle"}
+                    size={36}
+                    color="#fff"
+                    />
+                </View>
 
-            {/* TEXT COLUMN */}
-            <View style={styles.textColumn}>
-                {/* SEVERITY */}
-                <ThemedText style={styles.severityDisplay}>
-                {incident.severity.charAt(0).toUpperCase() +
-                    incident.severity.slice(1) +
-                    " tension"}
-                </ThemedText>
+                {/* TEXT COLUMN */}
+                <View style={styles.textColumn}>
+                    {/* SEVERITY */}
+                    <ThemedText style={styles.severityDisplay}>
+                    {incident.severity.charAt(0).toUpperCase() +
+                        incident.severity.slice(1) +
+                        " tension"}
+                    </ThemedText>
 
-                {/* TITLE */}
-                <ThemedText style={styles.title}>
-                {incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
-                </ThemedText>
-            </View>
+                    {/* TITLE */}
+                    <ThemedText style={styles.title}>
+                    {incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
+                    </ThemedText>
+                </View>
 
-            {/* FOLLOW BUTTON - absolutely positioned */}
-            <View style={styles.followButtonAbsolute}>
-            <TouchableOpacity
-                onPress={() => {
-                setIsFollowing(!isFollowing);
-                // TODO: implement follow logic in Supabase
-                console.log(isFollowing ? "Unfollow clicked!" : "Follow clicked!");
-                }}
-                style={{ alignItems: "center" }} // keep icon + text centered
-            >
-                {/* Star icon stays fixed */}
-                <Ionicons
-                name="star"
-                size={24}
-                color={isFollowing ? "#FFD700" : "#6B7280"}
-                />
-                {/* Text below the star */}
-                <ThemedText style={styles.followText}>
-                {isFollowing ? "Following" : "Follow"}
-                </ThemedText>
-            </TouchableOpacity>
-            </View>
+                {/*/!* FOLLOW BUTTON - absolutely positioned *!/*/}
+                {/*<View style={styles.followButtonAbsolute}>*/}
+                {/*    <TouchableOpacity*/}
+                {/*        onPress={() => {*/}
+                {/*        setIsFollowing(!isFollowing);*/}
+                {/*        // TODO: implement follow logic in Supabase*/}
+                {/*        console.log(isFollowing ? "Unfollow clicked!" : "Follow clicked!");*/}
+                {/*        }}*/}
+                {/*        style={{ alignItems: "center" }} // keep icon + text centered*/}
+                {/*    >*/}
+                {/*        /!* Star icon stays fixed *!/*/}
+                {/*        <Ionicons*/}
+                {/*        name="star"*/}
+                {/*        size={24}*/}
+                {/*        color={isFollowing ? "#FFD700" : "#6B7280"}*/}
+                {/*        />*/}
+                {/*        /!* Text below the star *!/*/}
+                {/*        <ThemedText style={styles.followText}>*/}
+                {/*        {isFollowing ? "Following" : "Follow"}*/}
+                {/*        </ThemedText>*/}
+                {/*    </TouchableOpacity>*/}
+                {/*</View>*/}
+                {/* FOLLOW BUTTON */}
+                <View style={styles.followButtonAbsolute}>
+                    <TouchableOpacity
+                        onPress={handleFollow}
+                        disabled={followLoading}
+                        style={{ alignItems: "center" }}
+                    >
+                        <Ionicons
+                            name="star"
+                            size={24}
+                            color={isFollowing ? "#FFD700" : "#6B7280"}
+                        />
+                        <ThemedText style={styles.followText}>
+                            {isFollowing ? "Following" : "Follow"}
+                        </ThemedText>
+                        {/*<ThemedText style={styles.followText}>*/}
+                        {/*    {incident.followed_by?.length ?? 0}*/}
+                        {/*</ThemedText>*/}
+                    </TouchableOpacity>
+                </View>
+
             </View>
              <Spacer height={10} />
 
@@ -409,7 +456,6 @@ const IncidentDetails = () => {
                 </TouchableOpacity>
 
                 {/* STAFF ACTIONS */}
-
                 <View style={styles.staffButton}>
                     <ThemedText style={styles.staffButtonText}>
                         Verify
