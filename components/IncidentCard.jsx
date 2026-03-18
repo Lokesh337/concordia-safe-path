@@ -66,30 +66,29 @@ const IncidentCard = ({ item, onPress }) => (
                 </ThemedText>
 
                 {/* Bottom badge row */}
+                {/* Bottom badge row */}
                 <View style={styles.bottomRow}>
                     <View style={{ flex: 1 }} />
 
-                    {/* "Resolved" badge — only shown when status is resolved */}
-                    {item.status === 'resolved' && (
+                    {item.status === 'resolved' ? (
                         <View style={[styles.badgePill, { backgroundColor: Colors.badge.resolvedBg }]}>
                             <Ionicons name="checkmark-done-outline" size={14} color={Colors.badge.resolved} />
                             <ThemedText style={[styles.badgeText, { color: Colors.badge.resolved }]}>Resolved</ThemedText>
                         </View>
-                    )}
+                    ) : item.verified ? (
+                        <View style={[styles.badgePill, { backgroundColor: Colors.badge.verifiedBg }]}>
+                            <Ionicons name="checkmark-circle" size={14} color={Colors.badge.verified} />
+                            <ThemedText style={[styles.badgeText, { color: Colors.badge.verified }]}>Verified by Campus</ThemedText>
+                        </View>
+                    ) : (item.upvotes ?? 0) > 0 ? (
+                        <View style={[styles.badgePill, { backgroundColor: Colors.badge.reportedBg }]}>
+                            <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
+                            <ThemedText style={[styles.badgeText, { color: Colors.badge.reported }]}>
+                                {`Reported by ${(item.upvotes - item.downvotes ?? 0) + 1}`}
+                            </ThemedText>
+                        </View>
+                    ) : null}
 
-                    {/* Verification badge — "Verified by Campus" OR "Reported by X" */}
-                    <View style={[styles.badgePill, { backgroundColor: item.verified ? Colors.badge.verifiedBg : Colors.badge.reportedBg }]}>
-                        {item.verified
-                            ? <Ionicons name="checkmark-circle" size={14} color={Colors.badge.verified} />
-                            : <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
-                        }
-                        <ThemedText style={[styles.badgeText, { color: item.verified ? Colors.badge.verified : Colors.badge.reported }]}>
-                            {item.verified
-                                ? 'Verified by Campus'
-                                : `Reported by ${item.upvotes + 1}`  // +1 = the original reporter
-                            }
-                        </ThemedText>
-                    </View>
                 </View>
 
             </View>

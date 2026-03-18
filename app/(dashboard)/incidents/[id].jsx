@@ -17,8 +17,13 @@ import { Icons } from "../../../constants/Icons"
 // hooks + helpers
 import { useIncidents } from "../../../hooks/useIncidents"
 import { getNearestBuilding, timeAgo } from "../../../lib/helpers"
+import { useUser } from "../../../hooks/useUser"
 
 const IncidentDetails = () => {
+    const { user } = useUser()
+
+    const [userVote, setUserVote] = useState(null) // 'up' | 'down' | 'witnessed' | null
+    const [voteLoading, setVoteLoading] = useState(false)
 
     const [incident, setIncident] = useState(null)
     const { id } = useLocalSearchParams()
@@ -33,13 +38,96 @@ const IncidentDetails = () => {
         loadIncident()
     }, [id])
 
-    const handleUpvote = async () => {
-        // TODO: Implement upvote logic using the incident_upvotes table in Supabase
-        // - Check if the current user has already upvoted
-        // - If not, insert { incident_id, user_id, upvoted: true } into incident_upvotes
-        // - If yes, optionally toggle to remove their upvote
-        // - Then fetch the total number of upvotes and update state
-        console.log("Upvote clicked — TODO: connect to Supabase incident_upvotes table")
+    useEffect(() => {
+        async function loadUserVote() {
+            const { data } = await supabase
+                .from('incident_votes')
+                .select('vote')
+                .eq('incident_id', id)
+                .eq('user_id', user.id)
+                .maybeSingle()
+            if (data) setUserVote(data.vote)
+        }
+        loadUserVote()
+    }, [id])
+
+    useEffect(() => {
+        const channel = supabase
+            .channel(`incident-${id}`)
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'incidents', filter: `id=eq.${id}` },
+                (payload) => {
+                    __DEV__ && console.log('[id] realtime update received')
+                    setIncident(payload.new)
+                }
+            )
+            .subscribe()
+
+        return () => supabase.removeChannel(channel)
+    }, [id])
+
+    async function handleVote(type) {
+        if (voteLoading) return
+
+        const isSameVote = userVote === type
+        const oppositeCol = type === 'up' ? 'downvotes' : 'upvotes'
+        const col = type === 'up' ? 'upvotes' : 'downvotes'
+
+        // calculate new counts
+        // if switching sides, undo the opposite vote too
+        const newCount = isSameVote
+            ? Math.max(0, (incident[col] ?? 0) - 1)        // undo
+            : (incident[col] ?? 0) + 1                      // vote
+
+        const newOppositeCount = userVote && !isSameVote
+            ? Math.max(0, (incident[oppositeCol] ?? 0) - 1) // remove opposite
+            : (incident[oppositeCol] ?? 0)                  // unchanged
+
+        setVoteLoading(true)
+        const { error } = await supabase
+            .from('incidents')
+            .update({ [col]: newCount, [oppositeCol]: newOppositeCount })
+            .eq('id', id)
+
+        if (!error) {
+            setIncident(prev => ({ ...prev, [col]: newCount, [oppositeCol]: newOppositeCount }))
+            setUserVote(isSameVote ? null : type)
+
+            // persist vote — upsert so switching sides updates the existing row
+            if (isSameVote) {
+                await supabase.from('incident_votes').delete()
+                    .eq('incident_id', id).eq('user_id', user.id)
+            } else {
+                await supabase.from('incident_votes').upsert({
+                    incident_id: id, user_id: user.id, vote: type
+                }, { onConflict: 'incident_id,user_id' })
+            }
+        } else {
+            __DEV__ && console.log('[id] vote error:', error.message)
+        }
+        setVoteLoading(false)
+    }
+
+    async function handleWitnessed() {
+        if (voteLoading || userVote === 'witnessed') return
+        const newCount = (incident.witnessed ?? 0) + 1
+        setVoteLoading(true)
+        const { error } = await supabase
+            .from('incidents')
+            .update({ witnessed: newCount })
+            .eq('id', id)
+        if (!error) {
+            setIncident(prev => ({ ...prev, witnessed: newCount }))
+            setUserVote('witnessed')
+
+            await supabase.from('incident_votes').upsert({
+                incident_id: id, user_id: user.id, vote: 'witnessed'
+            }, { onConflict: 'incident_id,user_id' })
+        } else {
+            __DEV__ && console.log('[id] witnessed error:', error.message)
+        }
+        setVoteLoading(false)
     }
 
         
@@ -51,7 +139,7 @@ const IncidentDetails = () => {
             </ThemedView>
         )
     }
-
+    const netVotes = (incident.upvotes ?? 0) - (incident.downvotes ?? 0)
     return (
         <ThemedView safe style={styles.container}>
 
@@ -175,7 +263,7 @@ const IncidentDetails = () => {
                         styles.progressLineFill,
                         {
                             width: `${
-                                (incident.verified ? 75 : incident.upvotes > 0 ? 50 : 25) +
+                                (incident.verified ? 75 : netVotes > 0 ? 50 : 25) +
                                 (incident.status === "resolved" ? 25 : 0)
                             }%`
                         }
@@ -195,13 +283,8 @@ const IncidentDetails = () => {
 
                     {/* STEP 2 */}
                     <View style={styles.step}>
-                        <View style={[
-                            styles.circle,
-                            incident.upvotes > 0 && styles.circleComplete
-                        ]}>
-                            {incident.upvotes > 0 &&
-                                <Ionicons name="checkmark" size={14} color="#fff" />
-                            }
+                        <View style={[styles.circle, netVotes > 0 && styles.circleComplete]}>
+                            {netVotes > 0 && <Ionicons name="checkmark" size={14} color="#fff" />}
                         </View>
                         <ThemedText style={styles.stepLabel}>Reported By Others</ThemedText>
                     </View>
@@ -243,58 +326,90 @@ const IncidentDetails = () => {
 
             <View style={styles.interactionRow}>
 
-                {/* UPVOTES */}
-                <View style={styles.actionWrapper}>
+                {/*/!* UPVOTES *!/*/}
+                {/*<View style={styles.actionWrapper}>*/}
+                {/*    <View style={styles.actionItem}>*/}
+                {/*        <Ionicons*/}
+                {/*            name="thumbs-up"*/}
+                {/*            size={22}*/}
+                {/*            color="#6B7280"*/}
+                {/*            onPress={() => {*/}
+                {/*                // TODO: handle upvote logic using the incident_upvotes table in Supabase*/}
+                {/*            }}*/}
+                {/*        />*/}
+                {/*        <ThemedText>{incident.upvotes}</ThemedText>*/}
+                {/*    </View>*/}
+                {/*    <ThemedText style={styles.actionLabel}> Upvotes</ThemedText>*/}
+                {/*</View>*/}
+
+                <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('up')} disabled={voteLoading}>
                     <View style={styles.actionItem}>
-                        <Ionicons
-                            name="thumbs-up"
-                            size={22}
-                            color="#6B7280"
-                            onPress={() => {
-                                // TODO: handle upvote logic using the incident_upvotes table in Supabase
-                            }}
-                        />
-                        <ThemedText>{incident.upvotes}</ThemedText>
+                        <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />
+                        <ThemedText>{incident.upvotes ?? 0}</ThemedText>
                     </View>
-                    <ThemedText style={styles.actionLabel}> Upvotes</ThemedText>
-                </View>
+                    <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>
+                </TouchableOpacity>
 
                 {/* DOWNVOTES */}
-                <View style={styles.actionWrapper}>
+                {/*<View style={styles.actionWrapper}>*/}
+                {/*    <View style={styles.actionItem}>*/}
+                {/*        <Ionicons*/}
+                {/*            name="thumbs-down"*/}
+                {/*            size={22}*/}
+                {/*            color="#6B7280"*/}
+                {/*            onPress={() => {*/}
+                {/*                // TODO: update downvotes in Supabase*/}
+                {/*            }}*/}
+                {/*        />*/}
+                {/*        <ThemedText>{incident.downvotes}</ThemedText> // TODO add downvotes to Supabase and fetch it in API*/}
+                {/*    </View>*/}
+                {/*    <ThemedText style={styles.actionLabel}> Downvotes</ThemedText>*/}
+                {/*</View>*/}
+
+                <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('down')} disabled={voteLoading}>
                     <View style={styles.actionItem}>
-                        <Ionicons
-                            name="thumbs-down"
-                            size={22}
-                            color="#6B7280"
-                            onPress={() => {
-                                // TODO: update downvotes in Supabase
-                            }}
-                        />
-                        <ThemedText>{incident.downvotes}</ThemedText> // TODO add downvotes to Supabase and fetch it in API
+                        <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />
+                        <ThemedText>{incident.downvotes ?? 0}</ThemedText>
                     </View>
-                    <ThemedText style={styles.actionLabel}> Downvotes</ThemedText>
-                </View>
+                    <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>
+                </TouchableOpacity>
+
+                {/*/!* WITNESSED *!/*/}
+                {/*<View style={styles.actionWrapper}>*/}
+                {/*    <View style={styles.actionItem}>*/}
+                {/*        <Ionicons*/}
+                {/*            name="eye"*/}
+                {/*            size={22}*/}
+                {/*            color="#6B7280"*/}
+                {/*            onPress={() => {*/}
+                {/*                // TODO: add user id to followed_by array in Supabase*/}
+                {/*            }}*/}
+                {/*        />*/}
+                {/*        <ThemedText>{incident.followed_by?.length ?? 0}</ThemedText>*/}
+                {/*    </View>*/}
+                {/*    */}
+                {/*    <ThemedText style={styles.actionLabel}> Witnessed It</ThemedText>*/}
+                {/*</View>*/}
 
                 {/* WITNESSED */}
-                <View style={styles.actionWrapper}>
+                <TouchableOpacity
+                    style={styles.actionWrapper}
+                    onPress={handleWitnessed}
+                    disabled={voteLoading || userVote === 'witnessed'}
+                >
                     <View style={styles.actionItem}>
                         <Ionicons
                             name="eye"
                             size={22}
-                            color="#6B7280"
-                            onPress={() => {
-                                // TODO: add user id to followed_by array in Supabase
-                            }}
+                            color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"}
                         />
-                        <ThemedText>{incident.followed_by?.length ?? 0}</ThemedText>
+                        <ThemedText>{incident.witnessed ?? 0}</ThemedText>
                     </View>
-                    
-                    <ThemedText style={styles.actionLabel}> Witnessed It</ThemedText>
-                </View>
+                    <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>
+                </TouchableOpacity>
 
                 {/* STAFF ACTIONS */}
-                
-                
+
                 <View style={styles.staffButton}>
                     <ThemedText style={styles.staffButtonText}>
                         Verify
@@ -377,12 +492,6 @@ const IncidentDetails = () => {
 export default IncidentDetails
 
 const styles = StyleSheet.create({
-        header: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 10
-    },
-
     textColumn: {
         flexDirection: "column",
         justifyContent: "flex-start",
