@@ -20,8 +20,7 @@ import { getNearestBuilding, timeAgo } from "../../../lib/helpers"
 import { useUser } from "../../../hooks/useUser"
 
 const IncidentDetails = () => {
-    const { user } = useUser()
-
+    const { user, profile } = useUser()
     const [userVote, setUserVote] = useState(null) // 'up' | 'down' | 'witnessed' | null
     const [voteLoading, setVoteLoading] = useState(false)
 
@@ -30,18 +29,22 @@ const IncidentDetails = () => {
     const { fetchIncidentById } = useIncidents()
     const [isFollowing, setIsFollowing] = useState(false)
     const [followLoading, setFollowLoading] = useState(false)
+    const [actionLoading, setActionLoading] = useState(false)
 
     useEffect(() => {
         async function loadIncident() {
+            if (!id) return
             const data = await fetchIncidentById(id)
+            if (!data) return
             setIncident(data)
-            setIsFollowing(data.followed_by?.includes(user.id) ?? false)
+            setIsFollowing(data.followed_by?.includes(user?.id) ?? false)
         }
         loadIncident()
     }, [id])
 
     useEffect(() => {
         async function loadUserVote() {
+            if (!user?.id) return
             const { data } = await supabase
                 .from('incident_votes')
                 .select('vote')
@@ -51,7 +54,7 @@ const IncidentDetails = () => {
             if (data) setUserVote(data.vote)
         }
         loadUserVote()
-    }, [id])
+    }, [id, user?.id])
 
     useEffect(() => {
         const channel = supabase
@@ -156,6 +159,57 @@ const IncidentDetails = () => {
         setFollowLoading(false)
     }
 
+    async function handleVerify() {
+        if (actionLoading) return
+        setActionLoading(true)
+
+        const newVerified = !incident.verified
+        const { error } = await supabase
+            .from('incidents')
+            .update({
+                verified: newVerified,
+                verified_by: newVerified ? user.id : null,
+                verification_status: newVerified ? 'verified_by_campus' : 'submitted'
+            })
+            .eq('id', id)
+
+        if (!error) {
+            setIncident(prev => ({
+                ...prev,
+                verified: newVerified,
+                verification_status: newVerified ? 'verified_by_campus' : 'submitted'
+            }))
+        } else {
+            __DEV__ && console.log('[id] verify error:', error.message)
+        }
+        setActionLoading(false)
+    }
+
+    async function handleResolve() {
+        if (actionLoading) return
+        setActionLoading(true)
+
+        const newStatus = incident.status === 'resolved' ? 'active' : 'resolved'
+        const { error } = await supabase
+            .from('incidents')
+            .update({
+                status: newStatus,
+                verification_status: newStatus === 'resolved' ? 'resolved' : 'submitted'
+            })
+            .eq('id', id)
+
+        if (!error) {
+            setIncident(prev => ({
+                ...prev,
+                status: newStatus,
+                verification_status: newStatus === 'resolved' ? 'resolved' : 'submitted'
+            }))
+        } else {
+            __DEV__ && console.log('[id] resolve error:', error.message)
+        }
+        setActionLoading(false)
+    }
+
         
 
     if (!incident) {
@@ -201,28 +255,7 @@ const IncidentDetails = () => {
                     </ThemedText>
                 </View>
 
-                {/*/!* FOLLOW BUTTON - absolutely positioned *!/*/}
-                {/*<View style={styles.followButtonAbsolute}>*/}
-                {/*    <TouchableOpacity*/}
-                {/*        onPress={() => {*/}
-                {/*        setIsFollowing(!isFollowing);*/}
-                {/*        // TODO: implement follow logic in Supabase*/}
-                {/*        console.log(isFollowing ? "Unfollow clicked!" : "Follow clicked!");*/}
-                {/*        }}*/}
-                {/*        style={{ alignItems: "center" }} // keep icon + text centered*/}
-                {/*    >*/}
-                {/*        /!* Star icon stays fixed *!/*/}
-                {/*        <Ionicons*/}
-                {/*        name="star"*/}
-                {/*        size={24}*/}
-                {/*        color={isFollowing ? "#FFD700" : "#6B7280"}*/}
-                {/*        />*/}
-                {/*        /!* Text below the star *!/*/}
-                {/*        <ThemedText style={styles.followText}>*/}
-                {/*        {isFollowing ? "Following" : "Follow"}*/}
-                {/*        </ThemedText>*/}
-                {/*    </TouchableOpacity>*/}
-                {/*</View>*/}
+
                 {/* FOLLOW BUTTON */}
                 <View style={styles.followButtonAbsolute}>
                     <TouchableOpacity
@@ -369,25 +402,8 @@ const IncidentDetails = () => {
             <View style={styles.separator} />
 
 
-           {/* INCIDENT INTERACTIONS */}
-
+            {/* INCIDENT INTERACTIONS */}
             <View style={styles.interactionRow}>
-
-                {/*/!* UPVOTES *!/*/}
-                {/*<View style={styles.actionWrapper}>*/}
-                {/*    <View style={styles.actionItem}>*/}
-                {/*        <Ionicons*/}
-                {/*            name="thumbs-up"*/}
-                {/*            size={22}*/}
-                {/*            color="#6B7280"*/}
-                {/*            onPress={() => {*/}
-                {/*                // TODO: handle upvote logic using the incident_upvotes table in Supabase*/}
-                {/*            }}*/}
-                {/*        />*/}
-                {/*        <ThemedText>{incident.upvotes}</ThemedText>*/}
-                {/*    </View>*/}
-                {/*    <ThemedText style={styles.actionLabel}> Upvotes</ThemedText>*/}
-                {/*</View>*/}
 
                 <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('up')} disabled={voteLoading}>
                     <View style={styles.actionItem}>
@@ -397,22 +413,6 @@ const IncidentDetails = () => {
                     <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>
                 </TouchableOpacity>
 
-                {/* DOWNVOTES */}
-                {/*<View style={styles.actionWrapper}>*/}
-                {/*    <View style={styles.actionItem}>*/}
-                {/*        <Ionicons*/}
-                {/*            name="thumbs-down"*/}
-                {/*            size={22}*/}
-                {/*            color="#6B7280"*/}
-                {/*            onPress={() => {*/}
-                {/*                // TODO: update downvotes in Supabase*/}
-                {/*            }}*/}
-                {/*        />*/}
-                {/*        <ThemedText>{incident.downvotes}</ThemedText> // TODO add downvotes to Supabase and fetch it in API*/}
-                {/*    </View>*/}
-                {/*    <ThemedText style={styles.actionLabel}> Downvotes</ThemedText>*/}
-                {/*</View>*/}
-
                 <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('down')} disabled={voteLoading}>
                     <View style={styles.actionItem}>
                         <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />
@@ -421,60 +421,132 @@ const IncidentDetails = () => {
                     <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>
                 </TouchableOpacity>
 
-                {/*/!* WITNESSED *!/*/}
-                {/*<View style={styles.actionWrapper}>*/}
+                {/*<TouchableOpacity style={styles.actionWrapper} onPress={handleWitnessed} disabled={voteLoading || userVote === 'witnessed'}>*/}
                 {/*    <View style={styles.actionItem}>*/}
-                {/*        <Ionicons*/}
-                {/*            name="eye"*/}
-                {/*            size={22}*/}
-                {/*            color="#6B7280"*/}
-                {/*            onPress={() => {*/}
-                {/*                // TODO: add user id to followed_by array in Supabase*/}
-                {/*            }}*/}
-                {/*        />*/}
-                {/*        <ThemedText>{incident.followed_by?.length ?? 0}</ThemedText>*/}
+                {/*        <Ionicons name="eye" size={22} color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"} />*/}
+                {/*        <ThemedText>{incident.witnessed ?? 0}</ThemedText>*/}
                 {/*    </View>*/}
-                {/*    */}
-                {/*    <ThemedText style={styles.actionLabel}> Witnessed It</ThemedText>*/}
-                {/*</View>*/}
+                {/*    <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>*/}
+                {/*</TouchableOpacity>*/}
 
-                {/* WITNESSED */}
-                <TouchableOpacity
-                    style={styles.actionWrapper}
-                    onPress={handleWitnessed}
-                    disabled={voteLoading || userVote === 'witnessed'}
-                >
-                    <View style={styles.actionItem}>
-                        <Ionicons
-                            name="eye"
-                            size={22}
-                            color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"}
-                        />
-                        <ThemedText>{incident.witnessed ?? 0}</ThemedText>
-                    </View>
-                    <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>
-                </TouchableOpacity>
+                {profile?.role === 'staff' && (
+                    <View style={styles.staffActions}>
+                        <TouchableOpacity
+                            style={[
+                                styles.staffButton,
+                                incident.verified && styles.staffButtonDone,
+                                incident.status === 'resolved' && styles.staffButtonDisabled
+                            ]}
+                            onPress={handleVerify}
+                            disabled={actionLoading || incident.status === 'resolved'}
+                        >
+                            <ThemedText style={styles.staffButtonText}>
+                                {incident.verified ? "Unverify" : "Verify"}
+                            </ThemedText>
+                            <View style={styles.circleStaffButton}>
+                                <Ionicons name={incident.verified ? "close" : "checkmark"} size={14} color="#fff" />
+                            </View>
+                        </TouchableOpacity>
 
-                {/* STAFF ACTIONS */}
-                <View style={styles.staffButton}>
-                    <ThemedText style={styles.staffButtonText}>
-                        Verify
-                    </ThemedText>
-                    <View style={[styles.circleStaffButton]}>
-                            <Ionicons name="checkmark" size={14} color="#fff" />
+                        <TouchableOpacity
+                            style={[styles.staffButton, incident.status === 'resolved' && styles.staffButtonDone]}
+                            onPress={handleResolve}
+                            disabled={actionLoading}
+                        >
+                            <ThemedText style={styles.staffButtonText}>
+                                {incident.status === 'resolved' ? "Reopen" : "Resolve"}
+                            </ThemedText>
+                            <View style={styles.circleStaffButton}>
+                                <Ionicons name={incident.status === 'resolved' ? "close" : "checkmark"} size={14} color="#fff" />
+                            </View>
+                        </TouchableOpacity>
                     </View>
-                </View>
-
-                <View style={styles.staffButton}>
-                    <ThemedText style={styles.staffButtonText}>
-                        Resolve
-                    </ThemedText>
-                    <View style={[styles.circleStaffButton]}>
-                            <Ionicons name="checkmark" size={14} color="#fff" />
-                    </View>
-                </View>
+                )}
 
             </View>
+           {/* <View style={styles.interactionRow}>*/}
+
+                {/*/!* UPVOTES *!/*/}
+           {/*     /!*<View style={styles.actionWrapper}>*!/*/}
+           {/*     /!*    <View style={styles.actionItem}>*!/*/}
+           {/*     /!*        <Ionicons*!/*/}
+           {/*     /!*            name="thumbs-up"*!/*/}
+           {/*     /!*            size={22}*!/*/}
+           {/*     /!*            color="#6B7280"*!/*/}
+           {/*     /!*            onPress={() => {*!/*/}
+           {/*     /!*                // TODO: handle upvote logic using the incident_upvotes table in Supabase*!/*/}
+           {/*     /!*            }}*!/*/}
+           {/*     /!*        />*!/*/}
+           {/*     /!*        <ThemedText>{incident.upvotes}</ThemedText>*!/*/}
+           {/*     /!*    </View>*!/*/}
+           {/*     /!*    <ThemedText style={styles.actionLabel}> Upvotes</ThemedText>*!/*/}
+           {/*     /!*</View>*!/*/}
+
+           {/*     <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('up')} disabled={voteLoading}>*/}
+           {/*         <View style={styles.actionItem}>*/}
+           {/*             <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />*/}
+           {/*             <ThemedText>{incident.upvotes ?? 0}</ThemedText>*/}
+           {/*         </View>*/}
+           {/*         <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>*/}
+           {/*     </TouchableOpacity>*/}
+
+           {/*     <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('down')} disabled={voteLoading}>*/}
+           {/*         <View style={styles.actionItem}>*/}
+           {/*             <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />*/}
+           {/*             <ThemedText>{incident.downvotes ?? 0}</ThemedText>*/}
+           {/*         </View>*/}
+           {/*         <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>*/}
+           {/*     </TouchableOpacity>*/}
+
+           {/*     /!* WITNESSED *!/*/}
+           {/*     <TouchableOpacity*/}
+           {/*         style={styles.actionWrapper}*/}
+           {/*         onPress={handleWitnessed}*/}
+           {/*         disabled={voteLoading || userVote === 'witnessed'}*/}
+           {/*     >*/}
+           {/*         <View style={styles.actionItem}>*/}
+           {/*             <Ionicons*/}
+           {/*                 name="eye"*/}
+           {/*                 size={22}*/}
+           {/*                 color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"}*/}
+           {/*             />*/}
+           {/*             <ThemedText>{incident.witnessed ?? 0}</ThemedText>*/}
+           {/*         </View>*/}
+           {/*         <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>*/}
+           {/*     </TouchableOpacity>*/}
+
+           {/*     /!* STAFF ONLY *!/*/}
+           {/*     {profile?.role === 'staff' && (*/}
+           {/*         <>*/}
+           {/*             <TouchableOpacity*/}
+           {/*                 style={[styles.staffButton, incident.verified && styles.staffButtonDone]}*/}
+           {/*                 onPress={handleVerify}*/}
+           {/*                 disabled={actionLoading}*/}
+           {/*             >*/}
+           {/*                 <ThemedText style={styles.staffButtonText}>*/}
+           {/*                     {incident.verified ? "Unverify" : "Verify"}*/}
+           {/*                 </ThemedText>*/}
+           {/*                 <View style={styles.circleStaffButton}>*/}
+           {/*                     <Ionicons name={incident.verified ? "close" : "checkmark"} size={14} color="#fff" />*/}
+           {/*                 </View>*/}
+           {/*             </TouchableOpacity>*/}
+
+           {/*             <TouchableOpacity*/}
+           {/*                 style={[styles.staffButton, incident.status === 'resolved' && styles.staffButtonDone]}*/}
+           {/*                 onPress={handleResolve}*/}
+           {/*                 disabled={actionLoading}*/}
+           {/*             >*/}
+           {/*                 <ThemedText style={styles.staffButtonText}>*/}
+           {/*                     {incident.status === 'resolved' ? "Reopen" : "Resolve"}*/}
+           {/*                 </ThemedText>*/}
+           {/*                 <View style={styles.circleStaffButton}>*/}
+           {/*                     <Ionicons name={incident.status === 'resolved' ? "close" : "checkmark"} size={14} color="#fff" />*/}
+           {/*                 </View>*/}
+           {/*             </TouchableOpacity>*/}
+           {/*         </>*/}
+           {/*     )}*/}
+
+           {/* </View>*/}
 
             <View style={styles.separator} />
 
@@ -588,13 +660,6 @@ const styles = StyleSheet.create({
         marginTop: 2,          // small spacing below icon
     },
 
-    actionWrapper: {
-        alignItems: "center",
-        gap: 4
-    },
-
-
-
     container: {
         flex: 1,
         paddingHorizontal: 20, // only left/right
@@ -695,12 +760,6 @@ const styles = StyleSheet.create({
         textAlign: "center"
     },
 
-    interactionRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6
-    },
-
     actionItem: {
         flexDirection: "row", 
         alignItems: "center", 
@@ -723,13 +782,25 @@ const styles = StyleSheet.create({
         alignItems: "center"
     },
 
+    interactionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+
+    actionWrapper: {
+        flex: 1,
+        alignItems: "center",
+        gap: 4,
+    },
+
     staffButton: {
-        paddingHorizontal: 10,
+        flex: 1,
         paddingVertical: 12,
         borderRadius: 8,
         backgroundColor: "#59A7E7",
         flexDirection: "row",
-        alignContent: "center",
+        justifyContent: "center",
         alignItems: "center",
     },
 
@@ -815,5 +886,20 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderRadius: 8,
         padding: 8,
+    },
+
+    staffButtonDone: {
+        backgroundColor: "#24963F",
+    },
+
+    staffActions: {
+        flex: 2,
+        flexDirection: 'row',
+        gap: 6,
+    },
+
+    staffButtonDisabled: {
+        backgroundColor: "#9CA3AF",
+        opacity: 0.5,
     },
 })
