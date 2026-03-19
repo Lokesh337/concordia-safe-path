@@ -80,7 +80,7 @@ const IncidentCard = ({ item, onPress }) => (
                             <Ionicons name="checkmark-circle" size={14} color={Colors.badge.verified} />
                             <ThemedText style={[styles.badgeText, { color: Colors.badge.verified }]}>Verified by Campus</ThemedText>
                         </View>
-                    ) : (item.upvotes ?? 0) > 0 ? (
+                    ) : (item.upvotes ?? 0) > 4 ? (
                         <View style={[styles.badgePill, { backgroundColor: Colors.badge.reportedBg }]}>
                             <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
                             <ThemedText style={[styles.badgeText, { color: Colors.badge.reported }]}>

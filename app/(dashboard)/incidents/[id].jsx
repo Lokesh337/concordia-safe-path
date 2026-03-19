@@ -31,6 +31,10 @@ const IncidentDetails = () => {
     const [followLoading, setFollowLoading] = useState(false)
     const [actionLoading, setActionLoading] = useState(false)
 
+    const [comments, setComments] = useState([])
+    const [commentText, setCommentText] = useState('')
+    const [commentLoading, setCommentLoading] = useState(false)
+
     useEffect(() => {
         async function loadIncident() {
             if (!id) return
@@ -66,6 +70,24 @@ const IncidentDetails = () => {
                     __DEV__ && console.log('[id] realtime update received')
                     setIncident(payload.new)
                 }
+            )
+            .subscribe()
+
+        return () => supabase.removeChannel(channel)
+    }, [id])
+
+    useEffect(() => {
+        if (!id) return
+        fetchComments()
+    }, [id])
+
+    useEffect(() => {
+        const channel = supabase
+            .channel(`comments-${id}`)
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'comments', filter: `incident_id=eq.${id}` },
+                () => fetchComments()
             )
             .subscribe()
 
@@ -210,6 +232,35 @@ const IncidentDetails = () => {
         setActionLoading(false)
     }
 
+    async function fetchComments() {
+        const { data, error } = await supabase
+            .from('comments')
+            .select('id, content, created_at, user_id, profiles!comments_user_id_fkey(username)')
+            .eq('incident_id', id)
+            .order('created_at', { ascending: true })
+        if (error) {
+            __DEV__ && console.log('[id] fetchComments error:', error.message)
+            return
+        }
+        setComments(data ?? [])
+    }
+
+    async function handleComment() {
+        const trimmed = commentText.trim()
+        if (!trimmed || commentLoading) return
+        setCommentLoading(true)
+        const { error } = await supabase
+            .from('comments')
+            .insert({ incident_id: id, user_id: user.id, content: trimmed })
+        if (!error) {
+            setCommentText('')
+            await fetchComments()
+        } else {
+            __DEV__ && console.log('[id] comment error:', error.message)
+        }
+        setCommentLoading(false)
+    }
+
         
 
     if (!incident) {
@@ -343,7 +394,7 @@ const IncidentDetails = () => {
                         styles.progressLineFill,
                         {
                             width: `${
-                                (incident.verified ? 75 : netVotes > 0 ? 50 : 25) +
+                                (incident.verified ? 75 : netVotes >= 4 ? 50 : 25) +
                                 (incident.status === "resolved" ? 25 : 0)
                             }%`
                         }
@@ -363,8 +414,8 @@ const IncidentDetails = () => {
 
                     {/* STEP 2 */}
                     <View style={styles.step}>
-                        <View style={[styles.circle, netVotes > 0 && styles.circleComplete]}>
-                            {netVotes > 0 && <Ionicons name="checkmark" size={14} color="#fff" />}
+                        <View style={[styles.circle, netVotes >= 4 && styles.circleComplete]}>
+                            {netVotes >= 4 && <Ionicons name="checkmark" size={14} color="#fff" />}
                         </View>
                         <ThemedText style={styles.stepLabel}>Reported By Others</ThemedText>
                     </View>
@@ -550,54 +601,46 @@ const IncidentDetails = () => {
 
             <View style={styles.separator} />
 
-          {/* --- COMMENTS SECTION --- */}
+            {/* COMMENTS */}
             <ThemedText title>Comments</ThemedText>
             <Spacer height={10} />
 
-
             <ScrollView style={styles.commentsContainer}>
-                <View style={styles.commentItem}>
-                    <View style={styles.commentRow}>
-                        <Ionicons name="person-circle" size={36} color="#6B7280" style={styles.profileIcon} />
-                        <View>
+                {comments.length === 0 && (
+                    <ThemedText style={styles.noComments}>No comments yet.</ThemedText>
+                )}
+                {comments.map((c) => (
+                    <View key={c.id} style={styles.commentItem}>
+                        <View style={styles.commentRow}>
+                            <Ionicons name="person-circle" size={36} color="#6B7280" style={styles.profileIcon} />
                             <View style={styles.commentContentWrapper}>
-                                <ThemedText style={styles.commentUser}>Alice P</ThemedText>
-                                <Spacer height={4} />
-                                <ThemedText style={styles.commentContent}>
-                                    I saw this too! Be careful around this area.
+                                <ThemedText style={styles.commentUser}>
+                                    {c.profiles?.username ?? 'Unknown'}
                                 </ThemedText>
-                                <ThemedText style={styles.commentTime}>1 hours ago</ThemedText>
+                                <Spacer height={4} />
+                                <ThemedText style={styles.commentContent}>{c.content}</ThemedText>
+                                <ThemedText style={styles.commentTime}>{timeAgo(c.created_at)}</ThemedText>
                             </View>
                         </View>
                     </View>
-                </View>
-                <View style={styles.commentItem}>
-                    <View style={styles.commentRow}>
-                        <Ionicons name="person-circle" size={36} color="#6B7280" style={styles.profileIcon} />
-                        <View>
-                            <View style={styles.commentContentWrapper}>
-                                <ThemedText style={styles.commentUser}>Liam M</ThemedText>
-                                <Spacer height={4} />
-                                <ThemedText style={styles.commentContent}>
-                                    I saw this too! 
-                                </ThemedText>
-                                <ThemedText style={styles.commentTime}>2 hours ago</ThemedText>
-                            </View>
-                           
-                        </View>
-                    </View>
-                </View>
+                ))}
             </ScrollView>
 
-            {/* ADD COMMENT INPUT (just UI) */}
             <View style={styles.addCommentContainer}>
                 <TextInput
                     style={styles.commentInput}
                     placeholder="Add a comment..."
-                    value={""} // just UI, no state yet
-                    editable={false} // optional: shows input but doesn't allow typing yet
+                    placeholderTextColor="#999"
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    returnKeyType="send"
+                    onSubmitEditing={handleComment}
                 />
-                <TouchableOpacity style={styles.commentButton}>
+                <TouchableOpacity
+                    style={[styles.commentButton, (!commentText.trim() || commentLoading) && styles.commentButtonDisabled]}
+                    onPress={handleComment}
+                    disabled={!commentText.trim() || commentLoading}
+                >
                     <Ionicons name="send" size={20} color="#fff" />
                 </TouchableOpacity>
             </View>
@@ -815,13 +858,12 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
 
-    commentItem: {        
+    commentItem: {
         paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: "#E0E0E0",
         borderRadius: 7,
         paddingHorizontal: 12,
-        flexDirection: "row",
     },
 
     commentUser: {
@@ -901,5 +943,16 @@ const styles = StyleSheet.create({
     staffButtonDisabled: {
         backgroundColor: "#9CA3AF",
         opacity: 0.5,
+    },
+
+    noComments: {
+        opacity: 0.5,
+        fontSize: 13,
+        textAlign: 'center',
+        marginTop: 16,
+    },
+
+    commentButtonDisabled: {
+        opacity: 0.4,
     },
 })

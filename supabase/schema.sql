@@ -168,6 +168,11 @@ create policy "Users can delete their own comments"
     on comments for delete
     using (auth.uid() = user_id);
 
+alter table comments
+drop constraint if exists comments_user_id_fkey,
+    add constraint comments_user_id_fkey
+        foreign key (user_id) references profiles(id) on delete cascade;
+
 -- ============================================================
 -- TABLE: incident_votes
 -- tracks per-user vote on an incident so votes persist across sessions
