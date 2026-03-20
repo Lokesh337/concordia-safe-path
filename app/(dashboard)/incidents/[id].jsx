@@ -1,267 +1,1005 @@
-import { StyleSheet, View, ScrollView, TextInput, TouchableOpacity } from "react-native"
+// import { StyleSheet, View, ScrollView, TextInput, TouchableOpacity } from "react-native"
+// import { useLocalSearchParams } from "expo-router"
+// import { useEffect, useState } from "react"
+// import { Ionicons } from "@expo/vector-icons"
+// import { supabase } from "../../../lib/supabase"
+//
+// // themed
+// import ThemedText from "../../../components/ThemedText"
+// import ThemedView from "../../../components/ThemedView"
+// import Spacer from "../../../components/Spacer"
+// import ThemedLoader from "../../../components/ThemedLoader"
+//
+// // constants
+// import { Colors } from "../../../constants/Colors"
+// import { Icons } from "../../../constants/Icons"
+//
+// // hooks + helpers
+// import { useIncidents } from "../../../hooks/useIncidents"
+// import { getNearestBuilding, timeAgo } from "../../../lib/helpers"
+// import { useUser } from "../../../hooks/useUser"
+//
+// const IncidentDetails = () => {
+//     const { user, profile } = useUser()
+//     const [userVote, setUserVote] = useState(null) // 'up' | 'down' | 'witnessed' | null
+//     const [voteLoading, setVoteLoading] = useState(false)
+//
+//     const [incident, setIncident] = useState(null)
+//     const { id } = useLocalSearchParams()
+//     const { fetchIncidentById } = useIncidents()
+//     const [isFollowing, setIsFollowing] = useState(false)
+//     const [followLoading, setFollowLoading] = useState(false)
+//     const [actionLoading, setActionLoading] = useState(false)
+//
+//     const [comments, setComments] = useState([])
+//     const [commentText, setCommentText] = useState('')
+//     const [commentLoading, setCommentLoading] = useState(false)
+//
+//     useEffect(() => {
+//         async function loadIncident() {
+//             if (!id) return
+//             const data = await fetchIncidentById(id)
+//             if (!data) return
+//             setIncident(data)
+//             setIsFollowing(data.followed_by?.includes(user?.id) ?? false)
+//         }
+//         loadIncident()
+//     }, [id])
+//
+//     useEffect(() => {
+//         async function loadUserVote() {
+//             if (!user?.id) return
+//             const { data } = await supabase
+//                 .from('incident_votes')
+//                 .select('vote')
+//                 .eq('incident_id', id)
+//                 .eq('user_id', user.id)
+//                 .maybeSingle()
+//             if (data) setUserVote(data.vote)
+//         }
+//         loadUserVote()
+//     }, [id, user?.id])
+//
+//     useEffect(() => {
+//         const channel = supabase
+//             .channel(`incident-${id}`)
+//             .on(
+//                 'postgres_changes',
+//                 { event: 'UPDATE', schema: 'public', table: 'incidents', filter: `id=eq.${id}` },
+//                 (payload) => {
+//                     __DEV__ && console.log('[id] realtime update received')
+//                     setIncident(payload.new)
+//                 }
+//             )
+//             .subscribe()
+//
+//         return () => supabase.removeChannel(channel)
+//     }, [id])
+//
+//     useEffect(() => {
+//         if (!id) return
+//         fetchComments()
+//     }, [id])
+//
+//     useEffect(() => {
+//         const channel = supabase
+//             .channel(`comments-${id}`)
+//             .on(
+//                 'postgres_changes',
+//                 { event: 'INSERT', schema: 'public', table: 'comments', filter: `incident_id=eq.${id}` },
+//                 () => fetchComments()
+//             )
+//             .subscribe()
+//
+//         return () => supabase.removeChannel(channel)
+//     }, [id])
+//
+//     async function handleVote(type) {
+//         if (voteLoading) return
+//
+//         const isSameVote = userVote === type
+//         const oppositeCol = type === 'up' ? 'downvotes' : 'upvotes'
+//         const col = type === 'up' ? 'upvotes' : 'downvotes'
+//
+//         // calculate new counts
+//         // if switching sides, undo the opposite vote too
+//         const newCount = isSameVote
+//             ? Math.max(0, (incident[col] ?? 0) - 1)        // undo
+//             : (incident[col] ?? 0) + 1                      // vote
+//
+//         const newOppositeCount = userVote && !isSameVote
+//             ? Math.max(0, (incident[oppositeCol] ?? 0) - 1) // remove opposite
+//             : (incident[oppositeCol] ?? 0)                  // unchanged
+//
+//         setVoteLoading(true)
+//         const { error } = await supabase
+//             .from('incidents')
+//             .update({ [col]: newCount, [oppositeCol]: newOppositeCount })
+//             .eq('id', id)
+//
+//         if (!error) {
+//             setIncident(prev => ({ ...prev, [col]: newCount, [oppositeCol]: newOppositeCount }))
+//             setUserVote(isSameVote ? null : type)
+//
+//             // persist vote — upsert so switching sides updates the existing row
+//             if (isSameVote) {
+//                 await supabase.from('incident_votes').delete()
+//                     .eq('incident_id', id).eq('user_id', user.id)
+//             } else {
+//                 await supabase.from('incident_votes').upsert({
+//                     incident_id: id, user_id: user.id, vote: type
+//                 }, { onConflict: 'incident_id,user_id' })
+//             }
+//         } else {
+//             __DEV__ && console.log('[id] vote error:', error.message)
+//         }
+//         setVoteLoading(false)
+//     }
+//
+//     async function handleWitnessed() {
+//         if (voteLoading || userVote === 'witnessed') return
+//         const newCount = (incident.witnessed ?? 0) + 1
+//         setVoteLoading(true)
+//         const { error } = await supabase
+//             .from('incidents')
+//             .update({ witnessed: newCount })
+//             .eq('id', id)
+//         if (!error) {
+//             setIncident(prev => ({ ...prev, witnessed: newCount }))
+//             setUserVote('witnessed')
+//
+//             await supabase.from('incident_votes').upsert({
+//                 incident_id: id, user_id: user.id, vote: 'witnessed'
+//             }, { onConflict: 'incident_id,user_id' })
+//         } else {
+//             __DEV__ && console.log('[id] witnessed error:', error.message)
+//         }
+//         setVoteLoading(false)
+//     }
+//
+//     async function handleFollow() {
+//         if (followLoading) return
+//         setFollowLoading(true)
+//
+//         const currentList = incident.followed_by ?? []
+//         const alreadyFollowing = currentList.includes(user.id)
+//         const newList = alreadyFollowing
+//             ? currentList.filter(uid => uid !== user.id)
+//             : [...currentList, user.id]
+//
+//         const { error } = await supabase
+//             .from('incidents')
+//             .update({ followed_by: newList })
+//             .eq('id', id)
+//
+//         if (!error) {
+//             setIncident(prev => ({ ...prev, followed_by: newList }))
+//             setIsFollowing(!alreadyFollowing)
+//         } else {
+//             __DEV__ && console.log('[id] follow error:', error.message)
+//         }
+//         setFollowLoading(false)
+//     }
+//
+//     async function handleVerify() {
+//         if (actionLoading) return
+//         setActionLoading(true)
+//
+//         const newVerified = !incident.verified
+//         const { error } = await supabase
+//             .from('incidents')
+//             .update({
+//                 verified: newVerified,
+//                 verified_by: newVerified ? user.id : null,
+//                 verification_status: newVerified ? 'verified_by_campus' : 'submitted'
+//             })
+//             .eq('id', id)
+//
+//         if (!error) {
+//             setIncident(prev => ({
+//                 ...prev,
+//                 verified: newVerified,
+//                 verification_status: newVerified ? 'verified_by_campus' : 'submitted'
+//             }))
+//         } else {
+//             __DEV__ && console.log('[id] verify error:', error.message)
+//         }
+//         setActionLoading(false)
+//     }
+//
+//     async function handleResolve() {
+//         if (actionLoading) return
+//         setActionLoading(true)
+//
+//         const newStatus = incident.status === 'resolved' ? 'active' : 'resolved'
+//         const { error } = await supabase
+//             .from('incidents')
+//             .update({
+//                 status: newStatus,
+//                 verification_status: newStatus === 'resolved' ? 'resolved' : 'submitted'
+//             })
+//             .eq('id', id)
+//
+//         if (!error) {
+//             setIncident(prev => ({
+//                 ...prev,
+//                 status: newStatus,
+//                 verification_status: newStatus === 'resolved' ? 'resolved' : 'submitted'
+//             }))
+//         } else {
+//             __DEV__ && console.log('[id] resolve error:', error.message)
+//         }
+//         setActionLoading(false)
+//     }
+//
+//     async function fetchComments() {
+//         const { data, error } = await supabase
+//             .from('comments')
+//             .select('id, content, created_at, user_id, profiles!comments_user_id_fkey(username)')
+//             .eq('incident_id', id)
+//             .order('created_at', { ascending: true })
+//         if (error) {
+//             __DEV__ && console.log('[id] fetchComments error:', error.message)
+//             return
+//         }
+//         setComments(data ?? [])
+//     }
+//
+//     async function handleComment() {
+//         const trimmed = commentText.trim()
+//         if (!trimmed || commentLoading) return
+//         setCommentLoading(true)
+//         const { error } = await supabase
+//             .from('comments')
+//             .insert({ incident_id: id, user_id: user.id, content: trimmed })
+//         if (!error) {
+//             setCommentText('')
+//             await fetchComments()
+//         } else {
+//             __DEV__ && console.log('[id] comment error:', error.message)
+//         }
+//         setCommentLoading(false)
+//     }
+//
+//
+//
+//     if (!incident) {
+//         return (
+//             <ThemedView safe style={styles.container}>
+//                 <ThemedLoader />
+//             </ThemedView>
+//         )
+//     }
+//     const netVotes = (incident.upvotes ?? 0) - (incident.downvotes ?? 0)
+//     return (
+//         <ThemedView safe style={styles.container}>
+//
+//             {/* ICON */}
+//             {/* HEADER */}
+//             <View style={styles.header}>
+//                 {/* ICON */}
+//                 <View
+//                     style={[
+//                     styles.iconBox,
+//                     { backgroundColor: Colors.type[incident.type] ?? "#888" },
+//                     ]}
+//                 >
+//                     <Ionicons
+//                     name={Icons.type[incident.type] ?? "alert-circle"}
+//                     size={36}
+//                     color="#fff"
+//                     />
+//                 </View>
+//
+//                 {/* TEXT COLUMN */}
+//                 <View style={styles.textColumn}>
+//                     {/* SEVERITY */}
+//                     <ThemedText style={styles.severityDisplay}>
+//                     {incident.severity.charAt(0).toUpperCase() +
+//                         incident.severity.slice(1) +
+//                         " tension"}
+//                     </ThemedText>
+//
+//                     {/* TITLE */}
+//                     <ThemedText style={styles.title}>
+//                     {incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
+//                     </ThemedText>
+//                 </View>
+//
+//
+//                 {/* FOLLOW BUTTON */}
+//                 <View style={styles.followButtonAbsolute}>
+//                     <TouchableOpacity
+//                         onPress={handleFollow}
+//                         disabled={followLoading}
+//                         style={{ alignItems: "center" }}
+//                     >
+//                         <Ionicons
+//                             name="star"
+//                             size={24}
+//                             color={isFollowing ? "#FFD700" : "#6B7280"}
+//                         />
+//                         <ThemedText style={styles.followText}>
+//                             {isFollowing ? "Following" : "Follow"}
+//                         </ThemedText>
+//                         {/*<ThemedText style={styles.followText}>*/}
+//                         {/*    {incident.followed_by?.length ?? 0}*/}
+//                         {/*</ThemedText>*/}
+//                     </TouchableOpacity>
+//                 </View>
+//
+//             </View>
+//              <Spacer height={10} />
+//
+//
+//             {/* LOCATION */}
+//             <View style={styles.location}>
+//                 <Ionicons name="location" size={16} color="B74949"/>
+//                 <ThemedText>
+//                     {incident.latitude && incident.longitude
+//                         ? getNearestBuilding(incident.latitude, incident.longitude)
+//                         : "Unknown location"}
+//                 </ThemedText>
+//                 <ThemedText>
+//                     {/* TODO: Calculate the actual distance from the user's location */}
+//                     , 70m away
+//                 </ThemedText>
+//             </View>
+//
+//
+//              <Spacer height={10} />
+//
+//             {/* TIME */}
+//             <View style={{ flexDirection: "row", alignItems: "center" }}>
+//                 {/* Green circle */}
+//                 <View style={{
+//                     width: 15,
+//                     height: 15,
+//                     borderRadius: 10,
+//                     backgroundColor: "#24963F"
+//                 }} />
+//
+//                 {/* Reported text */}
+//                 <ThemedText style={styles.time}>
+//                     {"Reported " + timeAgo(incident.created_at)}
+//                 </ThemedText>
+//             </View>
+//
+//             <Spacer height={20} />
+//
+//
+//             {/* DESCRIPTION OPTIONAL */}
+//             {/*
+//             <ThemedText title>
+//                 Description
+//             </ThemedText>
+//
+//             <ThemedText style={styles.description}>
+//                 {incident.description}
+//             </ThemedText>
+//             */}
+//             <View style={styles.separator} />
+//
+//             {/* INCIDENT PROGRESS */}
+//
+//
+//             <View style={styles.progressWrapper}>
+//
+//                 {/* Grey base line */}
+//                 <View style={styles.progressLineBackground} />
+//
+//                 {/* Green progress line */}
+//                 <View
+//                     style={[
+//                         styles.progressLineFill,
+//                         {
+//                             width: `${
+//                                 (incident.verified ? 75 : netVotes >= 4 ? 50 : 25) +
+//                                 (incident.status === "resolved" ? 25 : 0)
+//                             }%`
+//                         }
+//                     ]}
+//                 />
+//
+//                 {/* Steps */}
+//                 <View style={styles.progressSteps}>
+//
+//                     {/* STEP 1 */}
+//                     <View style={styles.step}>
+//                         <View style={[styles.circle, styles.circleComplete]}>
+//                             <Ionicons name="checkmark" size={14} color="#fff" />
+//                         </View>
+//                         <ThemedText style={styles.stepLabel}>Submitted</ThemedText>
+//                     </View>
+//
+//                     {/* STEP 2 */}
+//                     <View style={styles.step}>
+//                         <View style={[styles.circle, netVotes >= 4 && styles.circleComplete]}>
+//                             {netVotes >= 4 && <Ionicons name="checkmark" size={14} color="#fff" />}
+//                         </View>
+//                         <ThemedText style={styles.stepLabel}>Reported By Others</ThemedText>
+//                     </View>
+//
+//                     {/* STEP 3 */}
+//                     <View style={styles.step}>
+//                         <View style={[
+//                             styles.circle,
+//                             incident.verified === true && styles.circleComplete
+//                         ]}>
+//                             {incident.verified === true &&
+//                                 <Ionicons name="checkmark" size={14} color="#fff" />
+//                             }
+//                         </View>
+//                         <ThemedText style={styles.stepLabel}>Verified</ThemedText>
+//                     </View>
+//
+//                     {/* STEP 4 */}
+//                     <View style={styles.step}>
+//                         <View style={[
+//                             styles.circle,
+//                             incident.status === "resolved" && styles.circleComplete
+//                         ]}>
+//                             {incident.status === "resolved" &&
+//                                 <Ionicons name="checkmark" size={14} color="#fff" />
+//                             }
+//                         </View>
+//                         <ThemedText style={styles.stepLabel}>Resolved</ThemedText>
+//                     </View>
+//
+//                 </View>
+//
+//             </View>
+//
+//             <View style={styles.separator} />
+//
+//
+//             {/* INCIDENT INTERACTIONS */}
+//             <View style={styles.interactionRow}>
+//
+//                 <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('up')} disabled={voteLoading}>
+//                     <View style={styles.actionItem}>
+//                         <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />
+//                         <ThemedText>{incident.upvotes ?? 0}</ThemedText>
+//                     </View>
+//                     <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>
+//                 </TouchableOpacity>
+//
+//                 <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('down')} disabled={voteLoading}>
+//                     <View style={styles.actionItem}>
+//                         <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />
+//                         <ThemedText>{incident.downvotes ?? 0}</ThemedText>
+//                     </View>
+//                     <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>
+//                 </TouchableOpacity>
+//
+//                 {/*<TouchableOpacity style={styles.actionWrapper} onPress={handleWitnessed} disabled={voteLoading || userVote === 'witnessed'}>*/}
+//                 {/*    <View style={styles.actionItem}>*/}
+//                 {/*        <Ionicons name="eye" size={22} color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"} />*/}
+//                 {/*        <ThemedText>{incident.witnessed ?? 0}</ThemedText>*/}
+//                 {/*    </View>*/}
+//                 {/*    <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>*/}
+//                 {/*</TouchableOpacity>*/}
+//
+//                 {profile?.role === 'staff' && (
+//                     <View style={styles.staffActions}>
+//                         <TouchableOpacity
+//                             style={[
+//                                 styles.staffButton,
+//                                 incident.verified && styles.staffButtonDone,
+//                                 incident.status === 'resolved' && styles.staffButtonDisabled
+//                             ]}
+//                             onPress={handleVerify}
+//                             disabled={actionLoading || incident.status === 'resolved'}
+//                         >
+//                             <ThemedText style={styles.staffButtonText}>
+//                                 {incident.verified ? "Unverify" : "Verify"}
+//                             </ThemedText>
+//                             <View style={styles.circleStaffButton}>
+//                                 <Ionicons name={incident.verified ? "close" : "checkmark"} size={14} color="#fff" />
+//                             </View>
+//                         </TouchableOpacity>
+//
+//                         <TouchableOpacity
+//                             style={[styles.staffButton, incident.status === 'resolved' && styles.staffButtonDone]}
+//                             onPress={handleResolve}
+//                             disabled={actionLoading}
+//                         >
+//                             <ThemedText style={styles.staffButtonText}>
+//                                 {incident.status === 'resolved' ? "Reopen" : "Resolve"}
+//                             </ThemedText>
+//                             <View style={styles.circleStaffButton}>
+//                                 <Ionicons name={incident.status === 'resolved' ? "close" : "checkmark"} size={14} color="#fff" />
+//                             </View>
+//                         </TouchableOpacity>
+//                     </View>
+//                 )}
+//
+//             </View>
+//            {/* <View style={styles.interactionRow}>*/}
+//
+//                 {/*/!* UPVOTES *!/*/}
+//            {/*     /!*<View style={styles.actionWrapper}>*!/*/}
+//            {/*     /!*    <View style={styles.actionItem}>*!/*/}
+//            {/*     /!*        <Ionicons*!/*/}
+//            {/*     /!*            name="thumbs-up"*!/*/}
+//            {/*     /!*            size={22}*!/*/}
+//            {/*     /!*            color="#6B7280"*!/*/}
+//            {/*     /!*            onPress={() => {*!/*/}
+//            {/*     /!*                // TODO: handle upvote logic using the incident_upvotes table in Supabase*!/*/}
+//            {/*     /!*            }}*!/*/}
+//            {/*     /!*        />*!/*/}
+//            {/*     /!*        <ThemedText>{incident.upvotes}</ThemedText>*!/*/}
+//            {/*     /!*    </View>*!/*/}
+//            {/*     /!*    <ThemedText style={styles.actionLabel}> Upvotes</ThemedText>*!/*/}
+//            {/*     /!*</View>*!/*/}
+//
+//            {/*     <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('up')} disabled={voteLoading}>*/}
+//            {/*         <View style={styles.actionItem}>*/}
+//            {/*             <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />*/}
+//            {/*             <ThemedText>{incident.upvotes ?? 0}</ThemedText>*/}
+//            {/*         </View>*/}
+//            {/*         <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>*/}
+//            {/*     </TouchableOpacity>*/}
+//
+//            {/*     <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('down')} disabled={voteLoading}>*/}
+//            {/*         <View style={styles.actionItem}>*/}
+//            {/*             <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />*/}
+//            {/*             <ThemedText>{incident.downvotes ?? 0}</ThemedText>*/}
+//            {/*         </View>*/}
+//            {/*         <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>*/}
+//            {/*     </TouchableOpacity>*/}
+//
+//            {/*     /!* WITNESSED *!/*/}
+//            {/*     <TouchableOpacity*/}
+//            {/*         style={styles.actionWrapper}*/}
+//            {/*         onPress={handleWitnessed}*/}
+//            {/*         disabled={voteLoading || userVote === 'witnessed'}*/}
+//            {/*     >*/}
+//            {/*         <View style={styles.actionItem}>*/}
+//            {/*             <Ionicons*/}
+//            {/*                 name="eye"*/}
+//            {/*                 size={22}*/}
+//            {/*                 color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"}*/}
+//            {/*             />*/}
+//            {/*             <ThemedText>{incident.witnessed ?? 0}</ThemedText>*/}
+//            {/*         </View>*/}
+//            {/*         <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>*/}
+//            {/*     </TouchableOpacity>*/}
+//
+//            {/*     /!* STAFF ONLY *!/*/}
+//            {/*     {profile?.role === 'staff' && (*/}
+//            {/*         <>*/}
+//            {/*             <TouchableOpacity*/}
+//            {/*                 style={[styles.staffButton, incident.verified && styles.staffButtonDone]}*/}
+//            {/*                 onPress={handleVerify}*/}
+//            {/*                 disabled={actionLoading}*/}
+//            {/*             >*/}
+//            {/*                 <ThemedText style={styles.staffButtonText}>*/}
+//            {/*                     {incident.verified ? "Unverify" : "Verify"}*/}
+//            {/*                 </ThemedText>*/}
+//            {/*                 <View style={styles.circleStaffButton}>*/}
+//            {/*                     <Ionicons name={incident.verified ? "close" : "checkmark"} size={14} color="#fff" />*/}
+//            {/*                 </View>*/}
+//            {/*             </TouchableOpacity>*/}
+//
+//            {/*             <TouchableOpacity*/}
+//            {/*                 style={[styles.staffButton, incident.status === 'resolved' && styles.staffButtonDone]}*/}
+//            {/*                 onPress={handleResolve}*/}
+//            {/*                 disabled={actionLoading}*/}
+//            {/*             >*/}
+//            {/*                 <ThemedText style={styles.staffButtonText}>*/}
+//            {/*                     {incident.status === 'resolved' ? "Reopen" : "Resolve"}*/}
+//            {/*                 </ThemedText>*/}
+//            {/*                 <View style={styles.circleStaffButton}>*/}
+//            {/*                     <Ionicons name={incident.status === 'resolved' ? "close" : "checkmark"} size={14} color="#fff" />*/}
+//            {/*                 </View>*/}
+//            {/*             </TouchableOpacity>*/}
+//            {/*         </>*/}
+//            {/*     )}*/}
+//
+//            {/* </View>*/}
+//
+//             <View style={styles.separator} />
+//
+//             {/* COMMENTS */}
+//             <ThemedText title>Comments</ThemedText>
+//             <Spacer height={10} />
+//
+//             <ScrollView style={styles.commentsContainer}>
+//                 {comments.length === 0 && (
+//                     <ThemedText style={styles.noComments}>No comments yet.</ThemedText>
+//                 )}
+//                 {comments.map((c) => (
+//                     <View key={c.id} style={styles.commentItem}>
+//                         <View style={styles.commentRow}>
+//                             <Ionicons name="person-circle" size={36} color="#6B7280" style={styles.profileIcon} />
+//                             <View style={styles.commentContentWrapper}>
+//                                 <ThemedText style={styles.commentUser}>
+//                                     {c.profiles?.username ?? 'Unknown'}
+//                                 </ThemedText>
+//                                 <Spacer height={4} />
+//                                 <ThemedText style={styles.commentContent}>{c.content}</ThemedText>
+//                                 <ThemedText style={styles.commentTime}>{timeAgo(c.created_at)}</ThemedText>
+//                             </View>
+//                         </View>
+//                     </View>
+//                 ))}
+//             </ScrollView>
+//
+//             <View style={styles.addCommentContainer}>
+//                 <TextInput
+//                     style={styles.commentInput}
+//                     placeholder="Add a comment..."
+//                     placeholderTextColor="#999"
+//                     value={commentText}
+//                     onChangeText={setCommentText}
+//                     returnKeyType="send"
+//                     onSubmitEditing={handleComment}
+//                 />
+//                 <TouchableOpacity
+//                     style={[styles.commentButton, (!commentText.trim() || commentLoading) && styles.commentButtonDisabled]}
+//                     onPress={handleComment}
+//                     disabled={!commentText.trim() || commentLoading}
+//                 >
+//                     <Ionicons name="send" size={20} color="#fff" />
+//                 </TouchableOpacity>
+//             </View>
+//
+//
+//         </ThemedView>
+//     )
+// }
+//
+// export default IncidentDetails
+//
+// const styles = StyleSheet.create({
+//     textColumn: {
+//         flexDirection: "column",
+//         justifyContent: "flex-start",
+//
+//
+//     },
+//
+//     severityDisplay: {
+//         backgroundColor: "#E7E7E7",
+//         fontSize: 14,
+//         fontWeight: "600",
+//         color: "#4D4D4D",
+//         paddingHorizontal: 12,
+//         paddingVertical: 4,
+//         borderRadius: 9,
+//         alignSelf: "flex-start",
+//         marginBottom: 15
+//     },
+//
+//     separator: {
+//         height: 1,
+//         backgroundColor: "#E0E0E0", // light grey
+//         marginVertical: 10,          // spacing above and below the line
+//     },
+//
+//     header: {
+//         flexDirection: "row",
+//         alignItems: "flex-start",
+//         gap: 15,
+//         position: "relative", // needed for absolute child
+//     },
+//
+//     followButtonAbsolute: {
+//        position: "absolute",
+//         right: 10,          // fixed distance from right
+//         top: 5,
+//         width: 60,          // fixed width so text stays centered
+//         height: 55,         // enough height for icon + text including descenders
+//         alignItems: "center",
+//         justifyContent: "flex-start", // icon starts at top, text below
+//     },
+//
+//     followText: {
+//         fontSize: 12,
+//         color: "#a3a3a3",
+//         fontWeight: "600",
+//         textAlign: "center",   // ensure text is always centered
+//         marginTop: 2,          // small spacing below icon
+//     },
+//
+//     container: {
+//         flex: 1,
+//         paddingHorizontal: 20, // only left/right
+//         paddingTop: 15,          // remove top padding
+//     },
+//
+//     iconBox: {
+//         width: 80,
+//         height: 80,
+//         borderRadius: 20,
+//         justifyContent: "center",
+//         alignItems: "center"
+//     },
+//
+//     title: {
+//         fontSize: 24,
+//         fontWeight: "bold"
+//     },
+//
+//     time: {
+//         fontSize: 14,
+//         paddingLeft: 7,
+//     },
+//
+//     location: {
+//         flexDirection: "row",
+//         fontSize: 14,
+//         gap: 6,
+//         alignItems: "center",
+//     },
+//
+//     description: {
+//         fontSize: 16,
+//         lineHeight: 24
+//     },
+//
+//
+//     badge: {
+//         flexDirection: "row",
+//         alignItems: "center",
+//         gap: 6,
+//         paddingHorizontal: 10,
+//         paddingVertical: 6,
+//         borderRadius: 20,
+//         alignSelf: "flex-start"
+//     },
+//
+//     progressWrapper: {
+//     position: "relative",
+//     },
+//
+//     progressLineBackground: {
+//         position: "absolute",
+//         top: 9,
+//         left: 0,
+//         right: 0,
+//         height: 4,
+//         backgroundColor: "#DADADA"
+//     },
+//
+//     progressLineFill: {
+//         position: "absolute",
+//         top: 9,
+//         left: 0,
+//         height: 4,
+//         backgroundColor: "#24963F"
+//     },
+//
+//     progressSteps: {
+//         flexDirection: "row",
+//         justifyContent: "space-between"
+//     },
+//
+//     step: {
+//         alignItems: "center",
+//         width: 80
+//     },
+//
+//     circle: {
+//         width: 20,
+//         height: 20,
+//         borderRadius: 14,
+//         borderWidth: 2,
+//         borderColor: "#DADADA",
+//         backgroundColor: "#fff",
+//         justifyContent: "center",
+//         alignItems: "center"
+//     },
+//
+//     circleComplete: {
+//         backgroundColor: "#24963F",
+//         borderColor: "#24963F"
+//     },
+//
+//     stepLabel: {
+//         fontSize: 12,
+//         marginTop: 6,
+//         textAlign: "center"
+//     },
+//
+//     actionItem: {
+//         flexDirection: "row",
+//         alignItems: "center",
+//         gap: 4
+//
+//     },
+//
+//     actionLabel: {
+//         fontSize: 12,
+//         color: "#67686a"
+//     },
+//
+//     circleStaffButton: {
+//         width: 20,
+//         height: 20,
+//         left: 3,
+//         borderRadius: 14,
+//         borderWidth: 1,
+//         borderColor: "#fff",
+//         alignItems: "center"
+//     },
+//
+//     interactionRow: {
+//         flexDirection: "row",
+//         alignItems: "center",
+//         justifyContent: "space-between",
+//     },
+//
+//     actionWrapper: {
+//         flex: 1,
+//         alignItems: "center",
+//         gap: 4,
+//     },
+//
+//     staffButton: {
+//         flex: 1,
+//         paddingVertical: 12,
+//         borderRadius: 8,
+//         backgroundColor: "#59A7E7",
+//         flexDirection: "row",
+//         justifyContent: "center",
+//         alignItems: "center",
+//     },
+//
+//     staffButtonText: {
+//         color: "#fff",
+//         fontWeight: "400",
+//         fontSize: 13
+//     },
+//
+//     commentsContainer: {
+//         maxHeight: 200,   // scrollable area
+//         marginBottom: 10,
+//     },
+//
+//     commentItem: {
+//         paddingVertical: 8,
+//         borderBottomWidth: 1,
+//         borderBottomColor: "#E0E0E0",
+//         borderRadius: 7,
+//         paddingHorizontal: 12,
+//     },
+//
+//     commentUser: {
+//         fontWeight: "600",
+//         fontSize: 14,
+//     },
+//
+//     commentContent: {
+//         fontSize: 14,
+//         marginBottom: 4,
+//         width: 275,
+//
+//     },
+//
+//     commentTime: {
+//         fontSize: 12,
+//     },
+//
+//     addCommentContainer: {
+//         position: "absolute",
+//         bottom: 5,
+//         left: 10,
+//         right: 10,
+//         flexDirection: "row",
+//         alignItems: "center",
+//         gap: 5,
+//         paddingVertical: 8,
+//         borderTopWidth: 1,
+//         borderTopColor: "#E0E0E0",
+//
+//     },
+//
+//     commentInput: {
+//         flex: 1,
+//         height: 40,
+//         borderWidth: 1,
+//         borderColor: "#ccc",
+//         borderRadius: 20,
+//         paddingHorizontal: 12,
+//         backgroundColor: "#fff",
+//     },
+//
+//     commentButton: {
+//         backgroundColor: "#59A7E7",
+//         padding: 10,
+//         borderRadius: 20,
+//     },
+//
+//     commentRow: {
+//         flexDirection: "row",
+//         alignItems: "flex-start",
+//         gap: 10,
+//
+//     },
+//
+//     profileIcon: {
+//         marginTop: 5,
+//     },
+//
+//     commentContentWrapper: {
+//         flex: 1,
+//         backgroundColor: "#fff",
+//         borderRadius: 8,
+//         padding: 8,
+//     },
+//
+//     staffButtonDone: {
+//         backgroundColor: "#24963F",
+//     },
+//
+//     staffActions: {
+//         flex: 2,
+//         flexDirection: 'row',
+//         gap: 6,
+//     },
+//
+//     staffButtonDisabled: {
+//         backgroundColor: "#9CA3AF",
+//         opacity: 0.5,
+//     },
+//
+//     noComments: {
+//         opacity: 0.5,
+//         fontSize: 13,
+//         textAlign: 'center',
+//         marginTop: 16,
+//     },
+//
+//     commentButtonDisabled: {
+//         opacity: 0.4,
+//     },
+// })
+import { View, StyleSheet } from "react-native"
 import { useLocalSearchParams } from "expo-router"
-import { useEffect, useState } from "react"
 import { Ionicons } from "@expo/vector-icons"
-import { supabase } from "../../../lib/supabase"
 
 // themed
-import ThemedText from "../../../components/ThemedText"
 import ThemedView from "../../../components/ThemedView"
-import Spacer from "../../../components/Spacer"
 import ThemedLoader from "../../../components/ThemedLoader"
+import Spacer from "../../../components/Spacer"
+import ThemedText from "../../../components/ThemedText"
 
-// constants
-import { Colors } from "../../../constants/Colors"
-import { Icons } from "../../../constants/Icons"
+// incident components
+import IncidentHeader from "../../../components/incident/IncidentHeader"
+import IncidentProgress from "../../../components/incident/IncidentProgress"
+import IncidentInteractions from "../../../components/incident/IncidentInteractions"
+import CommentsSection from "../../../components/incident/CommentsSection"
 
-// hooks + helpers
-import { useIncidents } from "../../../hooks/useIncidents"
+// hook
+import { useIncidentDetail } from "../../../hooks/useIncidentDetail"
+
+// helpers
 import { getNearestBuilding, timeAgo } from "../../../lib/helpers"
-import { useUser } from "../../../hooks/useUser"
 
 const IncidentDetails = () => {
-    const { user, profile } = useUser()
-    const [userVote, setUserVote] = useState(null) // 'up' | 'down' | 'witnessed' | null
-    const [voteLoading, setVoteLoading] = useState(false)
-
-    const [incident, setIncident] = useState(null)
     const { id } = useLocalSearchParams()
-    const { fetchIncidentById } = useIncidents()
-    const [isFollowing, setIsFollowing] = useState(false)
-    const [followLoading, setFollowLoading] = useState(false)
-    const [actionLoading, setActionLoading] = useState(false)
 
-    const [comments, setComments] = useState([])
-    const [commentText, setCommentText] = useState('')
-    const [commentLoading, setCommentLoading] = useState(false)
-
-    useEffect(() => {
-        async function loadIncident() {
-            if (!id) return
-            const data = await fetchIncidentById(id)
-            if (!data) return
-            setIncident(data)
-            setIsFollowing(data.followed_by?.includes(user?.id) ?? false)
-        }
-        loadIncident()
-    }, [id])
-
-    useEffect(() => {
-        async function loadUserVote() {
-            if (!user?.id) return
-            const { data } = await supabase
-                .from('incident_votes')
-                .select('vote')
-                .eq('incident_id', id)
-                .eq('user_id', user.id)
-                .maybeSingle()
-            if (data) setUserVote(data.vote)
-        }
-        loadUserVote()
-    }, [id, user?.id])
-
-    useEffect(() => {
-        const channel = supabase
-            .channel(`incident-${id}`)
-            .on(
-                'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'incidents', filter: `id=eq.${id}` },
-                (payload) => {
-                    __DEV__ && console.log('[id] realtime update received')
-                    setIncident(payload.new)
-                }
-            )
-            .subscribe()
-
-        return () => supabase.removeChannel(channel)
-    }, [id])
-
-    useEffect(() => {
-        if (!id) return
-        fetchComments()
-    }, [id])
-
-    useEffect(() => {
-        const channel = supabase
-            .channel(`comments-${id}`)
-            .on(
-                'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'comments', filter: `incident_id=eq.${id}` },
-                () => fetchComments()
-            )
-            .subscribe()
-
-        return () => supabase.removeChannel(channel)
-    }, [id])
-
-    async function handleVote(type) {
-        if (voteLoading) return
-
-        const isSameVote = userVote === type
-        const oppositeCol = type === 'up' ? 'downvotes' : 'upvotes'
-        const col = type === 'up' ? 'upvotes' : 'downvotes'
-
-        // calculate new counts
-        // if switching sides, undo the opposite vote too
-        const newCount = isSameVote
-            ? Math.max(0, (incident[col] ?? 0) - 1)        // undo
-            : (incident[col] ?? 0) + 1                      // vote
-
-        const newOppositeCount = userVote && !isSameVote
-            ? Math.max(0, (incident[oppositeCol] ?? 0) - 1) // remove opposite
-            : (incident[oppositeCol] ?? 0)                  // unchanged
-
-        setVoteLoading(true)
-        const { error } = await supabase
-            .from('incidents')
-            .update({ [col]: newCount, [oppositeCol]: newOppositeCount })
-            .eq('id', id)
-
-        if (!error) {
-            setIncident(prev => ({ ...prev, [col]: newCount, [oppositeCol]: newOppositeCount }))
-            setUserVote(isSameVote ? null : type)
-
-            // persist vote — upsert so switching sides updates the existing row
-            if (isSameVote) {
-                await supabase.from('incident_votes').delete()
-                    .eq('incident_id', id).eq('user_id', user.id)
-            } else {
-                await supabase.from('incident_votes').upsert({
-                    incident_id: id, user_id: user.id, vote: type
-                }, { onConflict: 'incident_id,user_id' })
-            }
-        } else {
-            __DEV__ && console.log('[id] vote error:', error.message)
-        }
-        setVoteLoading(false)
-    }
-
-    async function handleWitnessed() {
-        if (voteLoading || userVote === 'witnessed') return
-        const newCount = (incident.witnessed ?? 0) + 1
-        setVoteLoading(true)
-        const { error } = await supabase
-            .from('incidents')
-            .update({ witnessed: newCount })
-            .eq('id', id)
-        if (!error) {
-            setIncident(prev => ({ ...prev, witnessed: newCount }))
-            setUserVote('witnessed')
-
-            await supabase.from('incident_votes').upsert({
-                incident_id: id, user_id: user.id, vote: 'witnessed'
-            }, { onConflict: 'incident_id,user_id' })
-        } else {
-            __DEV__ && console.log('[id] witnessed error:', error.message)
-        }
-        setVoteLoading(false)
-    }
-
-    async function handleFollow() {
-        if (followLoading) return
-        setFollowLoading(true)
-
-        const currentList = incident.followed_by ?? []
-        const alreadyFollowing = currentList.includes(user.id)
-        const newList = alreadyFollowing
-            ? currentList.filter(uid => uid !== user.id)
-            : [...currentList, user.id]
-
-        const { error } = await supabase
-            .from('incidents')
-            .update({ followed_by: newList })
-            .eq('id', id)
-
-        if (!error) {
-            setIncident(prev => ({ ...prev, followed_by: newList }))
-            setIsFollowing(!alreadyFollowing)
-        } else {
-            __DEV__ && console.log('[id] follow error:', error.message)
-        }
-        setFollowLoading(false)
-    }
-
-    async function handleVerify() {
-        if (actionLoading) return
-        setActionLoading(true)
-
-        const newVerified = !incident.verified
-        const { error } = await supabase
-            .from('incidents')
-            .update({
-                verified: newVerified,
-                verified_by: newVerified ? user.id : null,
-                verification_status: newVerified ? 'verified_by_campus' : 'submitted'
-            })
-            .eq('id', id)
-
-        if (!error) {
-            setIncident(prev => ({
-                ...prev,
-                verified: newVerified,
-                verification_status: newVerified ? 'verified_by_campus' : 'submitted'
-            }))
-        } else {
-            __DEV__ && console.log('[id] verify error:', error.message)
-        }
-        setActionLoading(false)
-    }
-
-    async function handleResolve() {
-        if (actionLoading) return
-        setActionLoading(true)
-
-        const newStatus = incident.status === 'resolved' ? 'active' : 'resolved'
-        const { error } = await supabase
-            .from('incidents')
-            .update({
-                status: newStatus,
-                verification_status: newStatus === 'resolved' ? 'resolved' : 'submitted'
-            })
-            .eq('id', id)
-
-        if (!error) {
-            setIncident(prev => ({
-                ...prev,
-                status: newStatus,
-                verification_status: newStatus === 'resolved' ? 'resolved' : 'submitted'
-            }))
-        } else {
-            __DEV__ && console.log('[id] resolve error:', error.message)
-        }
-        setActionLoading(false)
-    }
-
-    async function fetchComments() {
-        const { data, error } = await supabase
-            .from('comments')
-            .select('id, content, created_at, user_id, profiles!comments_user_id_fkey(username)')
-            .eq('incident_id', id)
-            .order('created_at', { ascending: true })
-        if (error) {
-            __DEV__ && console.log('[id] fetchComments error:', error.message)
-            return
-        }
-        setComments(data ?? [])
-    }
-
-    async function handleComment() {
-        const trimmed = commentText.trim()
-        if (!trimmed || commentLoading) return
-        setCommentLoading(true)
-        const { error } = await supabase
-            .from('comments')
-            .insert({ incident_id: id, user_id: user.id, content: trimmed })
-        if (!error) {
-            setCommentText('')
-            await fetchComments()
-        } else {
-            __DEV__ && console.log('[id] comment error:', error.message)
-        }
-        setCommentLoading(false)
-    }
-
-        
+    const {
+        incident,
+        isFollowing,
+        followLoading,
+        userVote,
+        voteLoading,
+        actionLoading,
+        comments,
+        commentText,
+        setCommentText,
+        commentLoading,
+        isStaff,
+        handleVote,
+        handleWitnessed,
+        handleFollow,
+        handleVerify,
+        handleResolve,
+        handleComment,
+    } = useIncidentDetail(id)
 
     if (!incident) {
         return (
@@ -270,381 +1008,68 @@ const IncidentDetails = () => {
             </ThemedView>
         )
     }
+
     const netVotes = (incident.upvotes ?? 0) - (incident.downvotes ?? 0)
+
     return (
         <ThemedView safe style={styles.container}>
 
-            {/* ICON */}
-            {/* HEADER */}
-            <View style={styles.header}>
-                {/* ICON */}
-                <View
-                    style={[
-                    styles.iconBox,
-                    { backgroundColor: Colors.type[incident.type] ?? "#888" },
-                    ]}
-                >
-                    <Ionicons
-                    name={Icons.type[incident.type] ?? "alert-circle"}
-                    size={36}
-                    color="#fff"
-                    />
-                </View>
+            <IncidentHeader
+                incident={incident}
+                isFollowing={isFollowing}
+                followLoading={followLoading}
+                onFollow={handleFollow}
+            />
 
-                {/* TEXT COLUMN */}
-                <View style={styles.textColumn}>
-                    {/* SEVERITY */}
-                    <ThemedText style={styles.severityDisplay}>
-                    {incident.severity.charAt(0).toUpperCase() +
-                        incident.severity.slice(1) +
-                        " tension"}
-                    </ThemedText>
-
-                    {/* TITLE */}
-                    <ThemedText style={styles.title}>
-                    {incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
-                    </ThemedText>
-                </View>
-
-
-                {/* FOLLOW BUTTON */}
-                <View style={styles.followButtonAbsolute}>
-                    <TouchableOpacity
-                        onPress={handleFollow}
-                        disabled={followLoading}
-                        style={{ alignItems: "center" }}
-                    >
-                        <Ionicons
-                            name="star"
-                            size={24}
-                            color={isFollowing ? "#FFD700" : "#6B7280"}
-                        />
-                        <ThemedText style={styles.followText}>
-                            {isFollowing ? "Following" : "Follow"}
-                        </ThemedText>
-                        {/*<ThemedText style={styles.followText}>*/}
-                        {/*    {incident.followed_by?.length ?? 0}*/}
-                        {/*</ThemedText>*/}
-                    </TouchableOpacity>
-                </View>
-
-            </View>
-             <Spacer height={10} />
-
+            <Spacer height={10} />
 
             {/* LOCATION */}
             <View style={styles.location}>
-                <Ionicons name="location" size={16} color="B74949"/>
+                <Ionicons name="location" size={16} color="#B74949" />
                 <ThemedText>
                     {incident.latitude && incident.longitude
                         ? getNearestBuilding(incident.latitude, incident.longitude)
                         : "Unknown location"}
                 </ThemedText>
-                <ThemedText> 
-                    {/* TODO: Calculate the actual distance from the user's location */}
-                    , 70m away
-                </ThemedText>
+                <ThemedText>, 70m away</ThemedText>
             </View>
 
-
-             <Spacer height={10} />
+            <Spacer height={10} />
 
             {/* TIME */}
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-                {/* Green circle */}
-                <View style={{
-                    width: 15,
-                    height: 15,
-                    borderRadius: 10,
-                    backgroundColor: "#24963F"
-                }} />
-
-                {/* Reported text */}
-                <ThemedText style={styles.time}>
-                    {"Reported " + timeAgo(incident.created_at)}
-                </ThemedText>
+                <View style={styles.activeDot} />
+                <ThemedText style={styles.time}>{"Reported " + timeAgo(incident.created_at)}</ThemedText>
             </View>
 
             <Spacer height={20} />
-
-
-            {/* DESCRIPTION OPTIONAL */}
-            {/*
-            <ThemedText title>
-                Description
-            </ThemedText>
-
-            <ThemedText style={styles.description}>
-                {incident.description}
-            </ThemedText>
-            */}
             <View style={styles.separator} />
 
-            {/* INCIDENT PROGRESS */}
-
-
-            <View style={styles.progressWrapper}>
-
-                {/* Grey base line */}
-                <View style={styles.progressLineBackground} />
-
-                {/* Green progress line */}
-                <View
-                    style={[
-                        styles.progressLineFill,
-                        {
-                            width: `${
-                                (incident.verified ? 75 : netVotes >= 4 ? 50 : 25) +
-                                (incident.status === "resolved" ? 25 : 0)
-                            }%`
-                        }
-                    ]}
-                />
-
-                {/* Steps */}
-                <View style={styles.progressSteps}>
-
-                    {/* STEP 1 */}
-                    <View style={styles.step}>
-                        <View style={[styles.circle, styles.circleComplete]}>
-                            <Ionicons name="checkmark" size={14} color="#fff" />
-                        </View>
-                        <ThemedText style={styles.stepLabel}>Submitted</ThemedText>
-                    </View>
-
-                    {/* STEP 2 */}
-                    <View style={styles.step}>
-                        <View style={[styles.circle, netVotes >= 4 && styles.circleComplete]}>
-                            {netVotes >= 4 && <Ionicons name="checkmark" size={14} color="#fff" />}
-                        </View>
-                        <ThemedText style={styles.stepLabel}>Reported By Others</ThemedText>
-                    </View>
-
-                    {/* STEP 3 */}
-                    <View style={styles.step}>
-                        <View style={[
-                            styles.circle,
-                            incident.verified === true && styles.circleComplete
-                        ]}>
-                            {incident.verified === true &&
-                                <Ionicons name="checkmark" size={14} color="#fff" />
-                            }
-                        </View>
-                        <ThemedText style={styles.stepLabel}>Verified</ThemedText>
-                    </View>
-
-                    {/* STEP 4 */}
-                    <View style={styles.step}>
-                        <View style={[
-                            styles.circle,
-                            incident.status === "resolved" && styles.circleComplete
-                        ]}>
-                            {incident.status === "resolved" &&
-                                <Ionicons name="checkmark" size={14} color="#fff" />
-                            }
-                        </View>
-                        <ThemedText style={styles.stepLabel}>Resolved</ThemedText>
-                    </View>
-
-                </View>
-
-            </View>
+            <IncidentProgress incident={incident} netVotes={netVotes} />
 
             <View style={styles.separator} />
 
-
-            {/* INCIDENT INTERACTIONS */}
-            <View style={styles.interactionRow}>
-
-                <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('up')} disabled={voteLoading}>
-                    <View style={styles.actionItem}>
-                        <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />
-                        <ThemedText>{incident.upvotes ?? 0}</ThemedText>
-                    </View>
-                    <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('down')} disabled={voteLoading}>
-                    <View style={styles.actionItem}>
-                        <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />
-                        <ThemedText>{incident.downvotes ?? 0}</ThemedText>
-                    </View>
-                    <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>
-                </TouchableOpacity>
-
-                {/*<TouchableOpacity style={styles.actionWrapper} onPress={handleWitnessed} disabled={voteLoading || userVote === 'witnessed'}>*/}
-                {/*    <View style={styles.actionItem}>*/}
-                {/*        <Ionicons name="eye" size={22} color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"} />*/}
-                {/*        <ThemedText>{incident.witnessed ?? 0}</ThemedText>*/}
-                {/*    </View>*/}
-                {/*    <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>*/}
-                {/*</TouchableOpacity>*/}
-
-                {profile?.role === 'staff' && (
-                    <View style={styles.staffActions}>
-                        <TouchableOpacity
-                            style={[
-                                styles.staffButton,
-                                incident.verified && styles.staffButtonDone,
-                                incident.status === 'resolved' && styles.staffButtonDisabled
-                            ]}
-                            onPress={handleVerify}
-                            disabled={actionLoading || incident.status === 'resolved'}
-                        >
-                            <ThemedText style={styles.staffButtonText}>
-                                {incident.verified ? "Unverify" : "Verify"}
-                            </ThemedText>
-                            <View style={styles.circleStaffButton}>
-                                <Ionicons name={incident.verified ? "close" : "checkmark"} size={14} color="#fff" />
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.staffButton, incident.status === 'resolved' && styles.staffButtonDone]}
-                            onPress={handleResolve}
-                            disabled={actionLoading}
-                        >
-                            <ThemedText style={styles.staffButtonText}>
-                                {incident.status === 'resolved' ? "Reopen" : "Resolve"}
-                            </ThemedText>
-                            <View style={styles.circleStaffButton}>
-                                <Ionicons name={incident.status === 'resolved' ? "close" : "checkmark"} size={14} color="#fff" />
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-            </View>
-           {/* <View style={styles.interactionRow}>*/}
-
-                {/*/!* UPVOTES *!/*/}
-           {/*     /!*<View style={styles.actionWrapper}>*!/*/}
-           {/*     /!*    <View style={styles.actionItem}>*!/*/}
-           {/*     /!*        <Ionicons*!/*/}
-           {/*     /!*            name="thumbs-up"*!/*/}
-           {/*     /!*            size={22}*!/*/}
-           {/*     /!*            color="#6B7280"*!/*/}
-           {/*     /!*            onPress={() => {*!/*/}
-           {/*     /!*                // TODO: handle upvote logic using the incident_upvotes table in Supabase*!/*/}
-           {/*     /!*            }}*!/*/}
-           {/*     /!*        />*!/*/}
-           {/*     /!*        <ThemedText>{incident.upvotes}</ThemedText>*!/*/}
-           {/*     /!*    </View>*!/*/}
-           {/*     /!*    <ThemedText style={styles.actionLabel}> Upvotes</ThemedText>*!/*/}
-           {/*     /!*</View>*!/*/}
-
-           {/*     <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('up')} disabled={voteLoading}>*/}
-           {/*         <View style={styles.actionItem}>*/}
-           {/*             <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />*/}
-           {/*             <ThemedText>{incident.upvotes ?? 0}</ThemedText>*/}
-           {/*         </View>*/}
-           {/*         <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>*/}
-           {/*     </TouchableOpacity>*/}
-
-           {/*     <TouchableOpacity style={styles.actionWrapper} onPress={() => handleVote('down')} disabled={voteLoading}>*/}
-           {/*         <View style={styles.actionItem}>*/}
-           {/*             <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />*/}
-           {/*             <ThemedText>{incident.downvotes ?? 0}</ThemedText>*/}
-           {/*         </View>*/}
-           {/*         <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>*/}
-           {/*     </TouchableOpacity>*/}
-
-           {/*     /!* WITNESSED *!/*/}
-           {/*     <TouchableOpacity*/}
-           {/*         style={styles.actionWrapper}*/}
-           {/*         onPress={handleWitnessed}*/}
-           {/*         disabled={voteLoading || userVote === 'witnessed'}*/}
-           {/*     >*/}
-           {/*         <View style={styles.actionItem}>*/}
-           {/*             <Ionicons*/}
-           {/*                 name="eye"*/}
-           {/*                 size={22}*/}
-           {/*                 color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"}*/}
-           {/*             />*/}
-           {/*             <ThemedText>{incident.witnessed ?? 0}</ThemedText>*/}
-           {/*         </View>*/}
-           {/*         <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>*/}
-           {/*     </TouchableOpacity>*/}
-
-           {/*     /!* STAFF ONLY *!/*/}
-           {/*     {profile?.role === 'staff' && (*/}
-           {/*         <>*/}
-           {/*             <TouchableOpacity*/}
-           {/*                 style={[styles.staffButton, incident.verified && styles.staffButtonDone]}*/}
-           {/*                 onPress={handleVerify}*/}
-           {/*                 disabled={actionLoading}*/}
-           {/*             >*/}
-           {/*                 <ThemedText style={styles.staffButtonText}>*/}
-           {/*                     {incident.verified ? "Unverify" : "Verify"}*/}
-           {/*                 </ThemedText>*/}
-           {/*                 <View style={styles.circleStaffButton}>*/}
-           {/*                     <Ionicons name={incident.verified ? "close" : "checkmark"} size={14} color="#fff" />*/}
-           {/*                 </View>*/}
-           {/*             </TouchableOpacity>*/}
-
-           {/*             <TouchableOpacity*/}
-           {/*                 style={[styles.staffButton, incident.status === 'resolved' && styles.staffButtonDone]}*/}
-           {/*                 onPress={handleResolve}*/}
-           {/*                 disabled={actionLoading}*/}
-           {/*             >*/}
-           {/*                 <ThemedText style={styles.staffButtonText}>*/}
-           {/*                     {incident.status === 'resolved' ? "Reopen" : "Resolve"}*/}
-           {/*                 </ThemedText>*/}
-           {/*                 <View style={styles.circleStaffButton}>*/}
-           {/*                     <Ionicons name={incident.status === 'resolved' ? "close" : "checkmark"} size={14} color="#fff" />*/}
-           {/*                 </View>*/}
-           {/*             </TouchableOpacity>*/}
-           {/*         </>*/}
-           {/*     )}*/}
-
-           {/* </View>*/}
+            <IncidentInteractions
+                incident={incident}
+                userVote={userVote}
+                voteLoading={voteLoading}
+                actionLoading={actionLoading}
+                isStaff={isStaff}
+                onVote={handleVote}
+                onWitnessed={handleWitnessed}
+                onVerify={handleVerify}
+                onResolve={handleResolve}
+            />
 
             <View style={styles.separator} />
 
-            {/* COMMENTS */}
-            <ThemedText title>Comments</ThemedText>
-            <Spacer height={10} />
-
-            <ScrollView style={styles.commentsContainer}>
-                {comments.length === 0 && (
-                    <ThemedText style={styles.noComments}>No comments yet.</ThemedText>
-                )}
-                {comments.map((c) => (
-                    <View key={c.id} style={styles.commentItem}>
-                        <View style={styles.commentRow}>
-                            <Ionicons name="person-circle" size={36} color="#6B7280" style={styles.profileIcon} />
-                            <View style={styles.commentContentWrapper}>
-                                <ThemedText style={styles.commentUser}>
-                                    {c.profiles?.username ?? 'Unknown'}
-                                </ThemedText>
-                                <Spacer height={4} />
-                                <ThemedText style={styles.commentContent}>{c.content}</ThemedText>
-                                <ThemedText style={styles.commentTime}>{timeAgo(c.created_at)}</ThemedText>
-                            </View>
-                        </View>
-                    </View>
-                ))}
-            </ScrollView>
-
-            <View style={styles.addCommentContainer}>
-                <TextInput
-                    style={styles.commentInput}
-                    placeholder="Add a comment..."
-                    placeholderTextColor="#999"
-                    value={commentText}
-                    onChangeText={setCommentText}
-                    returnKeyType="send"
-                    onSubmitEditing={handleComment}
-                />
-                <TouchableOpacity
-                    style={[styles.commentButton, (!commentText.trim() || commentLoading) && styles.commentButtonDisabled]}
-                    onPress={handleComment}
-                    disabled={!commentText.trim() || commentLoading}
-                >
-                    <Ionicons name="send" size={20} color="#fff" />
-                </TouchableOpacity>
-            </View>
-
+            <CommentsSection
+                comments={comments}
+                commentText={commentText}
+                commentLoading={commentLoading}
+                onChangeText={setCommentText}
+                onSubmit={handleComment}
+            />
 
         </ThemedView>
     )
@@ -653,306 +1078,29 @@ const IncidentDetails = () => {
 export default IncidentDetails
 
 const styles = StyleSheet.create({
-    textColumn: {
-        flexDirection: "column",
-        justifyContent: "flex-start",
-
-
-    },
-
-    severityDisplay: {
-        backgroundColor: "#E7E7E7",
-        fontSize: 14,
-        fontWeight: "600",
-        color: "#4D4D4D",
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 9,
-        alignSelf: "flex-start",
-        marginBottom: 15
-    },
-
-    separator: {
-        height: 1,
-        backgroundColor: "#E0E0E0", // light grey
-        marginVertical: 10,          // spacing above and below the line
-    },
-
-    header: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 15,
-        position: "relative", // needed for absolute child
-    },
-
-    followButtonAbsolute: {
-       position: "absolute",
-        right: 10,          // fixed distance from right
-        top: 5,
-        width: 60,          // fixed width so text stays centered
-        height: 55,         // enough height for icon + text including descenders
-        alignItems: "center",
-        justifyContent: "flex-start", // icon starts at top, text below
-    },
-
-    followText: {
-        fontSize: 12,
-        color: "#a3a3a3",
-        fontWeight: "600",
-        textAlign: "center",   // ensure text is always centered
-        marginTop: 2,          // small spacing below icon
-    },
-
     container: {
         flex: 1,
-        paddingHorizontal: 20, // only left/right
-        paddingTop: 15,          // remove top padding
+        paddingHorizontal: 20,
+        paddingTop: 15,
     },
-
-    iconBox: {
-        width: 80,
-        height: 80,
-        borderRadius: 20,
-        justifyContent: "center",
-        alignItems: "center"
+    separator: {
+        height: 1,
+        backgroundColor: "#E0E0E0",
+        marginVertical: 10,
     },
-
-    title: {
-        fontSize: 24,
-        fontWeight: "bold"
+    location: {
+        flexDirection: "row",
+        gap: 6,
+        alignItems: "center",
     },
-
+    activeDot: {
+        width: 15,
+        height: 15,
+        borderRadius: 10,
+        backgroundColor: "#24963F",
+    },
     time: {
         fontSize: 14,
         paddingLeft: 7,
-    },
-
-    location: {
-        flexDirection: "row",
-        fontSize: 14,
-        gap: 6,
-        alignItems: "center",
-    },
-
-    description: {
-        fontSize: 16,
-        lineHeight: 24
-    },
-
-
-    badge: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 20,
-        alignSelf: "flex-start"
-    },
-
-    progressWrapper: {
-    position: "relative",
-    },
-
-    progressLineBackground: {
-        position: "absolute",
-        top: 9,
-        left: 0,
-        right: 0,
-        height: 4,
-        backgroundColor: "#DADADA"
-    },
-
-    progressLineFill: {
-        position: "absolute",
-        top: 9,
-        left: 0,
-        height: 4,
-        backgroundColor: "#24963F"
-    },
-
-    progressSteps: {
-        flexDirection: "row",
-        justifyContent: "space-between"
-    },
-
-    step: {
-        alignItems: "center",
-        width: 80
-    },
-
-    circle: {
-        width: 20,
-        height: 20,
-        borderRadius: 14,
-        borderWidth: 2,
-        borderColor: "#DADADA",
-        backgroundColor: "#fff",
-        justifyContent: "center",
-        alignItems: "center"
-    },
-
-    circleComplete: {
-        backgroundColor: "#24963F",
-        borderColor: "#24963F"
-    },
-
-    stepLabel: {
-        fontSize: 12,
-        marginTop: 6,
-        textAlign: "center"
-    },
-
-    actionItem: {
-        flexDirection: "row", 
-        alignItems: "center", 
-        gap: 4
-
-    },
-
-    actionLabel: {
-        fontSize: 12,
-        color: "#67686a"
-    },
-
-    circleStaffButton: {
-        width: 20,
-        height: 20,
-        left: 3,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: "#fff",
-        alignItems: "center"
-    },
-
-    interactionRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-
-    actionWrapper: {
-        flex: 1,
-        alignItems: "center",
-        gap: 4,
-    },
-
-    staffButton: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 8,
-        backgroundColor: "#59A7E7",
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-
-    staffButtonText: {
-        color: "#fff",
-        fontWeight: "400",
-        fontSize: 13
-    },
-
-    commentsContainer: {
-        maxHeight: 200,   // scrollable area
-        marginBottom: 10,
-    },
-
-    commentItem: {
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-        borderRadius: 7,
-        paddingHorizontal: 12,
-    },
-
-    commentUser: {
-        fontWeight: "600",
-        fontSize: 14,
-    },
-
-    commentContent: {
-        fontSize: 14,
-        marginBottom: 4,
-        width: 275,
-
-    },
-
-    commentTime: {
-        fontSize: 12,
-    },
-
-    addCommentContainer: {
-        position: "absolute",
-        bottom: 5,
-        left: 10,
-        right: 10,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 5,
-        paddingVertical: 8,
-        borderTopWidth: 1,
-        borderTopColor: "#E0E0E0",
-
-    },
-
-    commentInput: {
-        flex: 1,
-        height: 40,
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 20,
-        paddingHorizontal: 12,
-        backgroundColor: "#fff",
-    },
-
-    commentButton: {
-        backgroundColor: "#59A7E7",
-        padding: 10,
-        borderRadius: 20,
-    },
-
-    commentRow: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 10,
-
-    },
-
-    profileIcon: {
-        marginTop: 5,
-    },
-
-    commentContentWrapper: {
-        flex: 1,
-        backgroundColor: "#fff",
-        borderRadius: 8,
-        padding: 8,
-    },
-
-    staffButtonDone: {
-        backgroundColor: "#24963F",
-    },
-
-    staffActions: {
-        flex: 2,
-        flexDirection: 'row',
-        gap: 6,
-    },
-
-    staffButtonDisabled: {
-        backgroundColor: "#9CA3AF",
-        opacity: 0.5,
-    },
-
-    noComments: {
-        opacity: 0.5,
-        fontSize: 13,
-        textAlign: 'center',
-        marginTop: 16,
-    },
-
-    commentButtonDisabled: {
-        opacity: 0.4,
     },
 })
