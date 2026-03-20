@@ -62,9 +62,11 @@ alter table profiles add column if not exists notif_vandalism text default 'norm
 
 -- Drop and recreate policies to ensure they are always up to date
 drop policy if exists "Users can view own profile" on profiles;
-create policy "Users can view own profile"
+
+drop policy if exists "Public can view profiles" on profiles;
+create policy "Public can view profiles"
     on profiles for select
-    using (auth.uid() = id);
+    using (true);
 
 drop policy if exists "Users can update own profile" on profiles;
 create policy "Users can update own profile"
