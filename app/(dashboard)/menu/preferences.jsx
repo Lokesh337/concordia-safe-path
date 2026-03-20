@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Alert, Switch, TouchableOpacity, Text, ScrollView, BackHandler } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { useUser } from '../../../hooks/useUser';
 import { Colors } from '../../../constants/Colors';
 import Spacer from "../../../components/Spacer";
@@ -197,7 +197,7 @@ const Preferences = () => {
 
     return (
         <ThemedView style={styles.container}>
-
+            <Stack.Screen options={{ headerShown: false, gestureEnabled: !isFirstTime && !prefUpdated }} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
                 {isFirstTime ? (

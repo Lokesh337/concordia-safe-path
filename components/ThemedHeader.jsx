@@ -23,6 +23,7 @@ import ThemedDrawer from './modals/ThemedDrawer'
 import { useState } from "react";
 import { usePathname, useRouter } from "expo-router";
 import ThemedText from "./ThemedText";
+import {useUser} from "../hooks/useUser";
 
 // Maps route pathnames to display titles shown in the header center.
 // Dynamic routes are handled separately below.
@@ -54,6 +55,9 @@ const ThemedHeader = () => {
     const title = PAGE_TITLES[pathname] ??
         (pathname.startsWith('/incidents/') ? 'Incident Detail' : '');
 
+    const { profile } = useUser()
+    const isOnboarding = pathname === '/menu/preferences' && !profile?.preferences_completed
+
     return (
         <View style={[
             styles.header,
@@ -65,9 +69,11 @@ const ThemedHeader = () => {
         ]}>
             {/* Left: hamburger menu → opens ThemedDrawer */}
             {pathname.startsWith('/menu/') || pathname.startsWith('/incidents/') ? (
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={26} color="#fff" />
-                </TouchableOpacity>
+                !isOnboarding && (
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <Ionicons name="arrow-back" size={26} color="#fff" />
+                    </TouchableOpacity>
+                )
             ) : (
                 <TouchableOpacity onPress={() => setDrawerOpen(true)}>
                     <Ionicons name="menu" size={26} color="#fff" />
