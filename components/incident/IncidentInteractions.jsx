@@ -16,6 +16,7 @@ const IncidentInteractions = ({
                               }) => (
     <View style={styles.interactionRow}>
 
+        {/* UPVOTE — highlights when active, disabled while write is in flight */}
         <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('up')} disabled={voteLoading}>
             <View style={styles.actionItem}>
                 <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />
@@ -24,6 +25,7 @@ const IncidentInteractions = ({
             <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>
         </TouchableOpacity>
 
+        {/* DOWNVOTE — switching from upvote automatically removes the upvote */}
         <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('down')} disabled={voteLoading}>
             <View style={styles.actionItem}>
                 <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />
@@ -32,20 +34,24 @@ const IncidentInteractions = ({
             <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>
         </TouchableOpacity>
 
-        {/*<TouchableOpacity*/}
-        {/*    style={styles.actionWrapper}*/}
-        {/*    onPress={onWitnessed}*/}
-        {/*    disabled={voteLoading || userVote === 'witnessed'}*/}
-        {/*>*/}
-        {/*    <View style={styles.actionItem}>*/}
-        {/*        <Ionicons name="eye" size={22} color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"} />*/}
-        {/*        <ThemedText>{incident.witnessed ?? 0}</ThemedText>*/}
-        {/*    </View>*/}
-        {/*    <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>*/}
-        {/*</TouchableOpacity>*/}
+        {/* WITNESSED — commented out pending team decision on witnessed vs votes
+        <TouchableOpacity
+            style={styles.actionWrapper}
+            onPress={onWitnessed}
+            disabled={voteLoading || userVote === 'witnessed'}
+        >
+            <View style={styles.actionItem}>
+                <Ionicons name="eye" size={22} color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"} />
+                <ThemedText>{incident.witnessed ?? 0}</ThemedText>
+            </View>
+            <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>
+        </TouchableOpacity> */}
 
+        {/* STAFF ONLY — verify and resolve, hidden for students */}
         {isStaff && (
             <View style={styles.staffActions}>
+
+                {/* verify — disabled once incident is resolved */}
                 <TouchableOpacity
                     style={[
                         styles.staffButton,
@@ -63,6 +69,7 @@ const IncidentInteractions = ({
                     </View>
                 </TouchableOpacity>
 
+                {/* resolve — also auto-verifies, see handleResolve in useIncidentDetail */}
                 <TouchableOpacity
                     style={[styles.staffButton, incident.status === 'resolved' && styles.staffButtonDone]}
                     onPress={onResolve}
@@ -75,6 +82,7 @@ const IncidentInteractions = ({
                         <Ionicons name={incident.status === 'resolved' ? "close" : "checkmark"} size={14} color="#fff" />
                     </View>
                 </TouchableOpacity>
+
             </View>
         )}
 
@@ -103,6 +111,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#67686a",
     },
+    // staff section takes flex: 2 so verify + resolve share the same space as 2 action buttons
     staffActions: {
         flex: 2,
         flexDirection: 'row',

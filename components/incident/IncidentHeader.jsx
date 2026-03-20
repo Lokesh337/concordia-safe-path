@@ -4,12 +4,16 @@ import ThemedText from "../ThemedText"
 import { Colors } from "../../constants/Colors"
 import { Icons } from "../../constants/Icons"
 
+// icon box color comes from Colors.type, falls back to grey for unknown types
 const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow }) => (
     <View style={styles.header}>
+
+        {/* type icon */}
         <View style={[styles.iconBox, { backgroundColor: Colors.type[incident.type] ?? "#888" }]}>
             <Ionicons name={Icons.type[incident.type] ?? "alert-circle"} size={36} color="#fff" />
         </View>
 
+        {/* severity badge + incident type title */}
         <View style={styles.textColumn}>
             <ThemedText style={styles.severityDisplay}>
                 {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1) + " tension"}
@@ -19,6 +23,7 @@ const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow }) => (
             </ThemedText>
         </View>
 
+        {/* follow button — absolutely positioned to top right */}
         <View style={styles.followButtonAbsolute}>
             <TouchableOpacity onPress={onFollow} disabled={followLoading} style={{ alignItems: "center" }}>
                 <Ionicons name="star" size={24} color={isFollowing ? "#FFD700" : "#6B7280"} />
@@ -27,6 +32,7 @@ const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow }) => (
                 </ThemedText>
             </TouchableOpacity>
         </View>
+
     </View>
 )
 
@@ -37,7 +43,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "flex-start",
         gap: 15,
-        position: "relative",
+        position: "relative", // needed for absolute follow button
     },
     iconBox: {
         width: 80,

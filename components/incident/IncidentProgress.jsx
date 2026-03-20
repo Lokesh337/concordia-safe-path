@@ -2,11 +2,15 @@ import { View, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import ThemedText from "../ThemedText"
 
+// progress bar fills left to right: 25% → 50% → 75% → 100%
+// step 2 threshold: netVotes >= 4 (4 upvotes + original reporter = 5 total)
 const IncidentProgress = ({ incident, netVotes }) => (
     <View style={styles.progressWrapper}>
 
+        {/* grey base track */}
         <View style={styles.progressLineBackground} />
 
+        {/* green fill — width driven by verified/netVotes/status */}
         <View
             style={[
                 styles.progressLineFill,
@@ -21,6 +25,7 @@ const IncidentProgress = ({ incident, netVotes }) => (
 
         <View style={styles.progressSteps}>
 
+            {/* step 1: always complete — incident exists */}
             <View style={styles.step}>
                 <View style={[styles.circle, styles.circleComplete]}>
                     <Ionicons name="checkmark" size={14} color="#fff" />
@@ -28,6 +33,7 @@ const IncidentProgress = ({ incident, netVotes }) => (
                 <ThemedText style={styles.stepLabel}>Submitted</ThemedText>
             </View>
 
+            {/* step 2: net votes >= 4 */}
             <View style={styles.step}>
                 <View style={[styles.circle, netVotes >= 4 && styles.circleComplete]}>
                     {netVotes >= 4 && <Ionicons name="checkmark" size={14} color="#fff" />}
@@ -35,6 +41,7 @@ const IncidentProgress = ({ incident, netVotes }) => (
                 <ThemedText style={styles.stepLabel}>Reported By Others</ThemedText>
             </View>
 
+            {/* step 3: verified by staff */}
             <View style={styles.step}>
                 <View style={[styles.circle, incident.verified && styles.circleComplete]}>
                     {incident.verified && <Ionicons name="checkmark" size={14} color="#fff" />}
@@ -42,6 +49,7 @@ const IncidentProgress = ({ incident, netVotes }) => (
                 <ThemedText style={styles.stepLabel}>Verified</ThemedText>
             </View>
 
+            {/* step 4: resolved by staff */}
             <View style={styles.step}>
                 <View style={[styles.circle, incident.status === "resolved" && styles.circleComplete]}>
                     {incident.status === "resolved" && <Ionicons name="checkmark" size={14} color="#fff" />}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useIncidents } from './useIncidents'
 import { useUser } from './useUser'
@@ -14,13 +14,14 @@ export function useIncidentDetail(id) {
     const [userVote, setUserVote] = useState(null) // 'up' | 'down' | 'witnessed' | null
     const [voteLoading, setVoteLoading] = useState(false)
 
-    const [actionLoading, setActionLoading] = useState(false)
+    const [actionLoading, setActionLoading] = useState(false) // guards verify/resolve
 
     const [comments, setComments] = useState([])
     const [commentText, setCommentText] = useState('')
     const [commentLoading, setCommentLoading] = useState(false)
 
     // ─── load incident ────────────────────────────────────────
+    // seeds isFollowing from followed_by array on first load
     useEffect(() => {
         async function loadIncident() {
             if (!id) return
@@ -33,6 +34,7 @@ export function useIncidentDetail(id) {
     }, [id])
 
     // ─── load user's existing vote ────────────────────────────
+    // re-runs when user changes (e.g. login/logout) to avoid stale vote state
     useEffect(() => {
         async function loadUserVote() {
             if (!user?.id) return
@@ -48,6 +50,7 @@ export function useIncidentDetail(id) {
     }, [id, user?.id])
 
     // ─── realtime: incident row ───────────────────────────────
+    // listens for UPDATE events so votes, verify, resolve reflect immediately
     useEffect(() => {
         const channel = supabase
             .channel(`incident-${id}`)
@@ -69,6 +72,7 @@ export function useIncidentDetail(id) {
         fetchComments()
     }, [id])
 
+    // re-fetch on INSERT so username join is included (payload alone won't have it)
     useEffect(() => {
         const channel = supabase
             .channel(`comments-${id}`)
@@ -81,7 +85,8 @@ export function useIncidentDetail(id) {
         return () => supabase.removeChannel(channel)
     }, [id])
 
-    // ─── handlers ─────────────────────────────────────────────
+    // ─── fetchComments ────────────────────────────────────────
+    // joins profiles via FK so username displays correctly
     async function fetchComments() {
         const { data, error } = await supabase
             .from('comments')
@@ -95,6 +100,9 @@ export function useIncidentDetail(id) {
         setComments(data ?? [])
     }
 
+    // ─── handleVote ───────────────────────────────────────────
+    // reddit-style: tapping same button undoes the vote,
+    // switching sides removes the old vote and adds the new one in one DB write
     async function handleVote(type) {
         if (voteLoading) return
 
@@ -103,12 +111,12 @@ export function useIncidentDetail(id) {
         const oppositeCol = type === 'up' ? 'downvotes' : 'upvotes'
 
         const newCount = isSameVote
-            ? Math.max(0, (incident[col] ?? 0) - 1)
-            : (incident[col] ?? 0) + 1
+            ? Math.max(0, (incident[col] ?? 0) - 1)         // undo
+            : (incident[col] ?? 0) + 1                       // vote
 
         const newOppositeCount = userVote && !isSameVote
-            ? Math.max(0, (incident[oppositeCol] ?? 0) - 1)
-            : (incident[oppositeCol] ?? 0)
+            ? Math.max(0, (incident[oppositeCol] ?? 0) - 1)  // remove opposite when switching
+            : (incident[oppositeCol] ?? 0)                   // unchanged
 
         setVoteLoading(true)
         const { error } = await supabase
@@ -119,6 +127,7 @@ export function useIncidentDetail(id) {
         if (!error) {
             setIncident(prev => ({ ...prev, [col]: newCount, [oppositeCol]: newOppositeCount }))
             setUserVote(isSameVote ? null : type)
+            // persist to incident_votes so vote survives logout
             if (isSameVote) {
                 await supabase.from('incident_votes').delete()
                     .eq('incident_id', id).eq('user_id', user.id)
@@ -134,6 +143,8 @@ export function useIncidentDetail(id) {
         setVoteLoading(false)
     }
 
+    // ─── handleWitnessed ─────────────────────────────────────
+    // one-way — no undo once witnessed
     async function handleWitnessed() {
         if (voteLoading || userVote === 'witnessed') return
         const newCount = (incident.witnessed ?? 0) + 1
@@ -155,6 +166,8 @@ export function useIncidentDetail(id) {
         setVoteLoading(false)
     }
 
+    // ─── handleFollow ─────────────────────────────────────────
+    // appends/removes user.id from followed_by array on the incident row
     async function handleFollow() {
         if (followLoading) return
         setFollowLoading(true)
@@ -176,6 +189,8 @@ export function useIncidentDetail(id) {
         setFollowLoading(false)
     }
 
+    // ─── handleVerify ─────────────────────────────────────────
+    // staff only — toggles verified flag, disabled once incident is resolved
     async function handleVerify() {
         if (actionLoading) return
         setActionLoading(true)
@@ -200,6 +215,10 @@ export function useIncidentDetail(id) {
         setActionLoading(false)
     }
 
+    // ─── handleResolve ────────────────────────────────────────
+    // staff only — toggles resolved/active
+    // resolving also auto-verifies the incident
+    // reopening leaves verified as-is
     async function handleResolve() {
         if (actionLoading) return
         setActionLoading(true)
@@ -227,6 +246,8 @@ export function useIncidentDetail(id) {
         setActionLoading(false)
     }
 
+    // ─── handleComment ────────────────────────────────────────
+    // inserts then re-fetches so the username join is fresh
     async function handleComment() {
         const trimmed = commentText.trim()
         if (!trimmed || commentLoading) return

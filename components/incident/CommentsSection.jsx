@@ -4,11 +4,13 @@ import ThemedText from "../ThemedText"
 import Spacer from "../Spacer"
 import { timeAgo } from "../../lib/helpers"
 
+// purely presentational — realtime subscription and fetch logic live in useIncidentDetail
 const CommentsSection = ({ comments, commentText, commentLoading, onChangeText, onSubmit }) => (
     <View style={styles.container}>
         <ThemedText title>Comments</ThemedText>
         <Spacer height={10} />
 
+        {/* scrollable comment list, capped at 200px */}
         <ScrollView style={styles.commentsContainer}>
             {comments.length === 0 && (
                 <ThemedText style={styles.noComments}>No comments yet.</ThemedText>
@@ -18,6 +20,7 @@ const CommentsSection = ({ comments, commentText, commentLoading, onChangeText, 
                     <View style={styles.commentRow}>
                         <Ionicons name="person-circle" size={36} color="#6B7280" style={styles.profileIcon} />
                         <View style={styles.commentContentWrapper}>
+                            {/* username joined from profiles via FK — falls back to 'Unknown' */}
                             <ThemedText style={styles.commentUser}>
                                 {c.profiles?.username ?? 'Unknown'}
                             </ThemedText>
@@ -30,6 +33,7 @@ const CommentsSection = ({ comments, commentText, commentLoading, onChangeText, 
             ))}
         </ScrollView>
 
+        {/* add comment — send on button press or keyboard return */}
         <View style={styles.addCommentContainer}>
             <TextInput
                 style={styles.commentInput}
