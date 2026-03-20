@@ -14,7 +14,7 @@ import IncidentProgress from "../../../components/incident/IncidentProgress"
 import IncidentInteractions from "../../../components/incident/IncidentInteractions"
 import CommentsSection from "../../../components/incident/CommentsSection"
 
-// hook
+// hook — all state and handlers live here
 import { useIncidentDetail } from "../../../hooks/useIncidentDetail"
 
 // helpers
@@ -25,6 +25,7 @@ const IncidentDetails = () => {
 
     const {
         incident,
+        userId,
         isFollowing,
         followLoading,
         userVote,
@@ -43,6 +44,7 @@ const IncidentDetails = () => {
         handleComment,
     } = useIncidentDetail(id)
 
+    // wait for incident to load
     if (!incident) {
         return (
             <ThemedView safe style={styles.container}>
@@ -51,11 +53,13 @@ const IncidentDetails = () => {
         )
     }
 
+    // drives progress bar step 2 and the "reported by others" badge threshold
     const netVotes = (incident.upvotes ?? 0) - (incident.downvotes ?? 0)
 
     return (
         <ThemedView safe style={styles.container}>
 
+            {/* HEADER — icon, title, severity, follow button */}
             <IncidentHeader
                 incident={incident}
                 isFollowing={isFollowing}
@@ -78,7 +82,7 @@ const IncidentDetails = () => {
 
             <Spacer height={10} />
 
-            {/* TIME */}
+            {/* TIME — green dot + relative timestamp */}
             <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <View style={styles.activeDot} />
                 <ThemedText style={styles.time}>{"Reported " + timeAgo(incident.created_at)}</ThemedText>
@@ -87,16 +91,19 @@ const IncidentDetails = () => {
             <Spacer height={20} />
             <View style={styles.separator} />
 
+            {/* PROGRESS BAR — submitted → reported → verified → resolved */}
             <IncidentProgress incident={incident} netVotes={netVotes} />
 
             <View style={styles.separator} />
 
+            {/* INTERACTIONS — votes, witnessed, staff actions */}
             <IncidentInteractions
                 incident={incident}
                 userVote={userVote}
                 voteLoading={voteLoading}
                 actionLoading={actionLoading}
                 isStaff={isStaff}
+                userId={userId}
                 onVote={handleVote}
                 onWitnessed={handleWitnessed}
                 onVerify={handleVerify}
@@ -105,6 +112,7 @@ const IncidentDetails = () => {
 
             <View style={styles.separator} />
 
+            {/* COMMENTS — list + input, realtime updates handled in hook */}
             <CommentsSection
                 comments={comments}
                 commentText={commentText}

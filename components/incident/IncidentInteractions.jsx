@@ -9,6 +9,7 @@ const IncidentInteractions = ({
                                   voteLoading,
                                   actionLoading,
                                   isStaff,
+                                  userId,
                                   onVote,
                                   onWitnessed,
                                   onVerify,
@@ -16,8 +17,8 @@ const IncidentInteractions = ({
                               }) => (
     <View style={styles.interactionRow}>
 
-        {/* UPVOTE — highlights when active, disabled while write is in flight */}
-        <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('up')} disabled={voteLoading}>
+        {/* UPVOTE — highlights when active, locked + disabled for the reporter */}
+        <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('up')} disabled={voteLoading || incident.user_id === userId}>
             <View style={styles.actionItem}>
                 <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />
                 <ThemedText>{incident.upvotes ?? 0}</ThemedText>
@@ -26,7 +27,7 @@ const IncidentInteractions = ({
         </TouchableOpacity>
 
         {/* DOWNVOTE — switching from upvote automatically removes the upvote */}
-        <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('down')} disabled={voteLoading}>
+        <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('down')} disabled={voteLoading || incident.user_id === userId}>
             <View style={styles.actionItem}>
                 <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />
                 <ThemedText>{incident.downvotes ?? 0}</ThemedText>

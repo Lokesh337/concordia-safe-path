@@ -7,7 +7,7 @@ import * as Location from 'expo-location'
 //themed components
 import ThemedText from '../../components/ThemedText'
 import ThemedView from '../../components/ThemedView'
-import IncidentCard from '../../components/IncidentCard'
+import IncidentCard from '../../components/incident/IncidentCard'
 
 //hooks
 import { useIncidents } from '../../hooks/useIncidents'

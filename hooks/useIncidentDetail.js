@@ -29,6 +29,8 @@ export function useIncidentDetail(id) {
             if (!data) return
             setIncident(data)
             setIsFollowing(data.followed_by?.includes(user?.id) ?? false)
+            // reporter's upvote is locked on
+            if (data.user_id === user?.id) setUserVote('up')
         }
         loadIncident()
     }, [id])
@@ -38,6 +40,8 @@ export function useIncidentDetail(id) {
     useEffect(() => {
         async function loadUserVote() {
             if (!user?.id) return
+            // skip fetch if user is the reporter — vote is already locked to 'up'
+            if (incident?.user_id === user.id) return
             const { data } = await supabase
                 .from('incident_votes')
                 .select('vote')
@@ -267,6 +271,7 @@ export function useIncidentDetail(id) {
     return {
         // data
         incident,
+        userId: user?.id,
         isFollowing,
         followLoading,
         userVote,

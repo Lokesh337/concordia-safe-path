@@ -19,15 +19,15 @@ import { StyleSheet, Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons"
 
 // Constants
-import { Colors } from "../constants/Colors";
-import { Icons } from "../constants/Icons";
+import { Colors } from "../../constants/Colors";
+import { Icons } from "../../constants/Icons";
 
 // Themed components
-import ThemedText from "./ThemedText";
-import ThemedCard from "./ThemedCard";
+import ThemedText from "../ThemedText";
+import ThemedCard from "../ThemedCard";
 
 // Helpers
-import { getNearestBuilding, timeAgo } from "../lib/helpers";
+import { getNearestBuilding, timeAgo } from "../../lib/helpers";
 
 const IncidentCard = ({ item, onPress }) => (
     <Pressable onPress={onPress}>
@@ -65,11 +65,20 @@ const IncidentCard = ({ item, onPress }) => (
                     {item.description}
                 </ThemedText>
 
-                {/* Bottom badge row */}
-                {/* Bottom badge row */}
                 <View style={styles.bottomRow}>
                     <View style={{ flex: 1 }} />
 
+                    {/* reported by — shown when upvotes >= 4, regardless of verified/resolved status */}
+                    {((item.upvotes ?? 0) >= 4) && (
+                        <View style={[styles.badgePill, { backgroundColor: Colors.badge.reportedBg }]}>
+                            <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
+                            <ThemedText style={[styles.badgeText, { color: Colors.badge.reported }]}>
+                                {`Reported by ${item.upvotes ?? 0}`}
+                            </ThemedText>
+                        </View>
+                    )}
+
+                    {/* resolved supersedes verified */}
                     {item.status === 'resolved' ? (
                         <View style={[styles.badgePill, { backgroundColor: Colors.badge.resolvedBg }]}>
                             <Ionicons name="checkmark-done-outline" size={14} color={Colors.badge.resolved} />
@@ -79,13 +88,6 @@ const IncidentCard = ({ item, onPress }) => (
                         <View style={[styles.badgePill, { backgroundColor: Colors.badge.verifiedBg }]}>
                             <Ionicons name="checkmark-circle" size={14} color={Colors.badge.verified} />
                             <ThemedText style={[styles.badgeText, { color: Colors.badge.verified }]}>Verified by Campus</ThemedText>
-                        </View>
-                    ) : (item.upvotes ?? 0) > 4 ? (
-                        <View style={[styles.badgePill, { backgroundColor: Colors.badge.reportedBg }]}>
-                            <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
-                            <ThemedText style={[styles.badgeText, { color: Colors.badge.reported }]}>
-                                {`Reported by ${(item.upvotes - item.downvotes ?? 0) + 1}`}
-                            </ThemedText>
                         </View>
                     ) : null}
 

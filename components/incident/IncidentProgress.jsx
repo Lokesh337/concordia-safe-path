@@ -3,63 +3,72 @@ import { Ionicons } from "@expo/vector-icons"
 import ThemedText from "../ThemedText"
 
 // progress bar fills left to right: 25% → 50% → 75% → 100%
-// step 2 threshold: netVotes >= 4 (4 upvotes + original reporter = 5 total)
-const IncidentProgress = ({ incident, netVotes }) => (
-    <View style={styles.progressWrapper}>
+// step 2 threshold: netVotes >= 4, OR incident is verified/resolved
+const IncidentProgress = ({ incident, netVotes }) => {
 
-        {/* grey base track */}
-        <View style={styles.progressLineBackground} />
+    const step2Complete = netVotes >= 4 || incident.verified || incident.status === 'resolved'
 
-        {/* green fill — width driven by verified/netVotes/status */}
-        <View
-            style={[
-                styles.progressLineFill,
-                {
-                    width: `${
-                        (incident.verified ? 75 : netVotes >= 4 ? 50 : 25) +
-                        (incident.status === "resolved" ? 25 : 0)
-                    }%`
-                }
-            ]}
-        />
+    return (
+        <View style={styles.progressWrapper}>
 
-        <View style={styles.progressSteps}>
+            {/* grey base track */}
+            <View style={styles.progressLineBackground} />
 
-            {/* step 1: always complete — incident exists */}
-            <View style={styles.step}>
-                <View style={[styles.circle, styles.circleComplete]}>
-                    <Ionicons name="checkmark" size={14} color="#fff" />
+            {/* green fill — width driven by verified/netVotes/status */}
+            <View
+                style={[
+                    styles.progressLineFill,
+                    {
+                        width: `${
+                            (incident.verified ? 75 : (step2Complete ? 50 : 25)) +
+                            (incident.status === "resolved" ? 25 : 0)
+                        }%`
+                    }
+                ]}
+            />
+
+            <View style={styles.progressSteps}>
+
+                {/* step 1: always complete — incident exists */}
+                <View style={styles.step}>
+                    <View style={[styles.circle, styles.circleComplete]}>
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                    </View>
+                    <ThemedText style={styles.stepLabel}>Submitted</ThemedText>
                 </View>
-                <ThemedText style={styles.stepLabel}>Submitted</ThemedText>
-            </View>
 
-            {/* step 2: net votes >= 4 */}
-            <View style={styles.step}>
-                <View style={[styles.circle, netVotes >= 4 && styles.circleComplete]}>
-                    {netVotes >= 4 && <Ionicons name="checkmark" size={14} color="#fff" />}
+                {/* step 2: net votes >= 4, or verified, or resolved */}
+                <View style={styles.step}>
+                    <View style={[styles.circle, step2Complete && styles.circleComplete]}>
+                        {step2Complete && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    </View>
+                    <ThemedText style={styles.stepLabel}>
+                        {step2Complete
+                            ? `Reported by ${incident.upvotes ?? 0}`
+                            : 'Reported By Others'}
+                    </ThemedText>
                 </View>
-                <ThemedText style={styles.stepLabel}>Reported By Others</ThemedText>
-            </View>
 
-            {/* step 3: verified by staff */}
-            <View style={styles.step}>
-                <View style={[styles.circle, incident.verified && styles.circleComplete]}>
-                    {incident.verified && <Ionicons name="checkmark" size={14} color="#fff" />}
+                {/* step 3: verified by staff */}
+                <View style={styles.step}>
+                    <View style={[styles.circle, incident.verified && styles.circleComplete]}>
+                        {incident.verified && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    </View>
+                    <ThemedText style={styles.stepLabel}>Verified</ThemedText>
                 </View>
-                <ThemedText style={styles.stepLabel}>Verified</ThemedText>
-            </View>
 
-            {/* step 4: resolved by staff */}
-            <View style={styles.step}>
-                <View style={[styles.circle, incident.status === "resolved" && styles.circleComplete]}>
-                    {incident.status === "resolved" && <Ionicons name="checkmark" size={14} color="#fff" />}
+                {/* step 4: resolved by staff */}
+                <View style={styles.step}>
+                    <View style={[styles.circle, incident.status === "resolved" && styles.circleComplete]}>
+                        {incident.status === "resolved" && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    </View>
+                    <ThemedText style={styles.stepLabel}>Resolved</ThemedText>
                 </View>
-                <ThemedText style={styles.stepLabel}>Resolved</ThemedText>
-            </View>
 
+            </View>
         </View>
-    </View>
-)
+    )
+}
 
 export default IncidentProgress
 
