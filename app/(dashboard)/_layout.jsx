@@ -33,12 +33,10 @@ export default function DashboardLayout() {
 
     // hide header/tabs when user is on preferences for the first time
     const isOnboarding = pathname === '/menu/preferences' && !profile?.preferences_completed
-    // hide the global hamburger header on pages that have their own custom header
-    const hideHeader = isOnboarding || pathname === '/menu/resources' || pathname === '/menu/preferences'
     return (
         <UserOnly>
             <ThemedView style={{ flex: 1 }}>
-                {!hideHeader && <ThemedHeader />}
+                <ThemedHeader />
                 <OfflineBanner />
                 <Tabs
                     screenOptions={({ route }) => ({

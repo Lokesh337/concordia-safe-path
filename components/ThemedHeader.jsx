@@ -58,15 +58,21 @@ const ThemedHeader = () => {
         <View style={[
             styles.header,
             {
-                backgroundColor: theme.navBackground,
+                backgroundColor: Colors.primaryDark,
                 paddingTop: insets.top + 15, // push content below the status bar/notch
                 paddingBottom: 15,
             }
         ]}>
             {/* Left: hamburger menu → opens ThemedDrawer */}
-            <TouchableOpacity onPress={() => setDrawerOpen(true)}>
-                <Ionicons name="menu" size={26} color={theme.title} />
-            </TouchableOpacity>
+            {pathname.startsWith('/menu/') || pathname.startsWith('/incidents/') ? (
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={26} color="#fff" />
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity onPress={() => setDrawerOpen(true)}>
+                    <Ionicons name="menu" size={26} color="#fff" />
+                </TouchableOpacity>
+            )}
 
             {/* ThemedDrawer is always mounted; visibility controlled by `visible` prop */}
             <ThemedDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -76,7 +82,7 @@ const ThemedHeader = () => {
 
             {/* Right: notifications icon → navigates to /notifications */}
             <TouchableOpacity onPress={() => router.push('/notifications')}>
-                <Ionicons name="notifications-outline" size={26} color={theme.title} />
+                <Ionicons name="notifications-outline" size={26} color='#fff' />
             </TouchableOpacity>
         </View>
     )
@@ -96,5 +102,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         letterSpacing: 1,
+        color: '#fff',
     },
 })

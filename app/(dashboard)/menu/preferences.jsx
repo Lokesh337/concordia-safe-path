@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Alert, Switch, TouchableOpacity, Text, ScrollView, BackHandler } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useUser } from '../../../hooks/useUser';
 import { Colors } from '../../../constants/Colors';
 import Spacer from "../../../components/Spacer";
@@ -197,19 +196,19 @@ const Preferences = () => {
     );
 
     return (
-        <ThemedView style={styles.container} safe={true}>
-            <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
+        <ThemedView style={styles.container}>
+            {/*<Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />*/}
 
-            <View style={styles.customHeader}>
-                <TouchableOpacity onPress={handleBackPress} style={styles.headerButton}>
-                    <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Preferences</Text>
-                {/* Notification icon — replaces the empty placeholder View */}
-                <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.headerButton}>
-                    <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-            </View>
+            {/*<View style={styles.customHeader}>*/}
+            {/*    <TouchableOpacity onPress={handleBackPress} style={styles.headerButton}>*/}
+            {/*        <Ionicons name="chevron-back" size={28} color="#FFFFFF" />*/}
+            {/*    </TouchableOpacity>*/}
+            {/*    <Text style={styles.headerTitle}>Preferences</Text>*/}
+            {/*    /!* Notification icon — replaces the empty placeholder View *!/*/}
+            {/*    <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.headerButton}>*/}
+            {/*        <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />*/}
+            {/*    </TouchableOpacity>*/}
+            {/*</View>*/}
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
@@ -313,9 +312,6 @@ export default Preferences;
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    customHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#2F5D98', paddingVertical: 15, paddingHorizontal: 10 },
-    headerTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
-    headerButton: { width: 40, alignItems: 'center' },
     scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
     onboardingText: { marginBottom: 20, opacity: 0.7, fontSize: 14 },
     section: { marginBottom: 20, backgroundColor: 'rgba(150, 150, 150, 0.05)', padding: 15, borderRadius: 12 },
