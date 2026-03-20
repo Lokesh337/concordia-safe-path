@@ -103,18 +103,6 @@ const Resources = () => {
 
     return (
         <ThemedView style={styles.container}>
-            {/*<Stack.Screen options={{ headerShown: false }} />*/}
-
-            {/*/!* Custom header: back button, title, notification icon *!/*/}
-            {/*<View style={styles.customHeader}>*/}
-            {/*    <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>*/}
-            {/*        <Ionicons name="chevron-back" size={28} color="#FFFFFF" />*/}
-            {/*    </TouchableOpacity>*/}
-            {/*    <Text style={styles.headerTitle}>Emergency Resources</Text>*/}
-            {/*    <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.headerButton}>*/}
-            {/*        <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />*/}
-            {/*    </TouchableOpacity>*/}
-            {/*</View>*/}
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 

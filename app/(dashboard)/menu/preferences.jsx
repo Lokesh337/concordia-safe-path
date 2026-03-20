@@ -197,18 +197,6 @@ const Preferences = () => {
 
     return (
         <ThemedView style={styles.container}>
-            {/*<Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />*/}
-
-            {/*<View style={styles.customHeader}>*/}
-            {/*    <TouchableOpacity onPress={handleBackPress} style={styles.headerButton}>*/}
-            {/*        <Ionicons name="chevron-back" size={28} color="#FFFFFF" />*/}
-            {/*    </TouchableOpacity>*/}
-            {/*    <Text style={styles.headerTitle}>Preferences</Text>*/}
-            {/*    /!* Notification icon — replaces the empty placeholder View *!/*/}
-            {/*    <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.headerButton}>*/}
-            {/*        <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />*/}
-            {/*    </TouchableOpacity>*/}
-            {/*</View>*/}
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
