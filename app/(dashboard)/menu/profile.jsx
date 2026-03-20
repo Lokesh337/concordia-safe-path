@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
-    Switch,
     ScrollView,
     useColorScheme,
     Alert,
@@ -18,26 +16,10 @@ import ThemedText from '../../../components/ThemedText';
 import ThemedButton from '../../../components/ThemedButton';
 
 const Profile = () => {
-    const { user, profile, updateProfile, logout } = useUser();
+    const { user, profile, logout } = useUser();
     const router = useRouter();
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme] ?? Colors.light;
-
-    // mirrors profile.dark_mode for the toggle — persisted on change
-    const [notificationsOn, setNotificationsOn] = useState(
-        profile?.dark_mode ?? false
-    );
-
-    const handleNotifToggle = async (value) => {
-        setNotificationsOn(value);
-        try {
-            await updateProfile(user.id, { dark_mode: value });
-        } catch (e) {
-            // revert on failure
-            setNotificationsOn(!value);
-            Alert.alert('Error', 'Could not save notification preference.');
-        }
-    };
 
     const handleLogout = () => {
         Alert.alert('Log Out', 'Are you sure you want to log out?', [

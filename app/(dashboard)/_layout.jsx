@@ -1,12 +1,11 @@
 import {Tabs, usePathname, useRouter} from "expo-router"
-import {TouchableOpacity, useColorScheme, StyleSheet } from "react-native"
+import { useColorScheme } from "react-native"
 import { Colors } from "../../constants/Colors"
 import { Ionicons} from "@expo/vector-icons";
 import UserOnly from "../../components/auth/UserOnly";
 import ThemedHeader from "../../components/ThemedHeader";
 import { useUser } from "../../hooks/useUser";
 import ThemedView from "../../components/ThemedView";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
 import IncidentTypeModal from "../../components/modals/IncidentTypeModal";
 import {useState} from "react";
 import OfflineBanner from "../../components/offline/OfflineBanner";
@@ -22,7 +21,6 @@ export default function DashboardLayout() {
     const theme = Colors[colorScheme] ?? Colors.light
     const [typeModalOpen, setTypeModalOpen] = useState(false)
     const router = useRouter()
-    const insets = useSafeAreaInsets()
     const pathname = usePathname()
     const { profile } = useUser()
 
@@ -154,37 +152,3 @@ export default function DashboardLayout() {
         </UserOnly>
     )
 }
-const styles = StyleSheet.create({
-    emergencyFab: {
-        position: 'absolute',
-        bottom: 120, // sits above the tab bar
-        right: 30,
-        width: 65,
-        height: 65,
-        borderRadius: 30,
-        backgroundColor: Colors.primaryDark,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-    },
-    createFab: {
-        position: 'absolute',
-        bottom: 210,
-        right: 30,
-        width: 65,
-        height: 65,
-        borderRadius: 30,
-        backgroundColor: Colors.primaryDark,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 5, // android shadow
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-    },
-})
