@@ -23,6 +23,7 @@ import ThemedDrawer from './modals/ThemedDrawer'
 import { useState } from "react";
 import { usePathname, useRouter } from "expo-router";
 import ThemedText from "./ThemedText";
+import {useUser} from "../hooks/useUser";
 
 // Maps route pathnames to display titles shown in the header center.
 // Dynamic routes are handled separately below.
@@ -54,19 +55,30 @@ const ThemedHeader = () => {
     const title = PAGE_TITLES[pathname] ??
         (pathname.startsWith('/incidents/') ? 'Incident Detail' : '');
 
+    const { profile } = useUser()
+    const isOnboarding = pathname === '/menu/preferences' && !profile?.preferences_completed
+
     return (
         <View style={[
             styles.header,
             {
-                backgroundColor: theme.navBackground,
+                backgroundColor: Colors.primaryDark,
                 paddingTop: insets.top + 15, // push content below the status bar/notch
                 paddingBottom: 15,
             }
         ]}>
             {/* Left: hamburger menu → opens ThemedDrawer */}
-            <TouchableOpacity onPress={() => setDrawerOpen(true)}>
-                <Ionicons name="menu" size={26} color={theme.title} />
-            </TouchableOpacity>
+            {pathname.startsWith('/menu/') || pathname.startsWith('/incidents/') ? (
+                !isOnboarding && (
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <Ionicons name="arrow-back" size={26} color="#fff" />
+                    </TouchableOpacity>
+                )
+            ) : (
+                <TouchableOpacity onPress={() => setDrawerOpen(true)}>
+                    <Ionicons name="menu" size={26} color="#fff" />
+                </TouchableOpacity>
+            )}
 
             {/* ThemedDrawer is always mounted; visibility controlled by `visible` prop */}
             <ThemedDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -76,7 +88,7 @@ const ThemedHeader = () => {
 
             {/* Right: notifications icon → navigates to /notifications */}
             <TouchableOpacity onPress={() => router.push('/notifications')}>
-                <Ionicons name="notifications-outline" size={26} color={theme.title} />
+                <Ionicons name="notifications-outline" size={26} color='#fff' />
             </TouchableOpacity>
         </View>
     )
@@ -96,5 +108,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         letterSpacing: 1,
+        color: '#fff',
     },
 })
