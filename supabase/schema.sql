@@ -266,3 +266,88 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
     after insert on auth.users
     for each row execute procedure public.handle_new_user();
+-- ============================================================
+-- TABLE: notifications
+-- One row per user per event (new incident or incident update).
+-- ============================================================
+create table if not exists notifications (
+    id          uuid primary key default gen_random_uuid(),
+    user_id     uuid references auth.users(id) on delete cascade not null,
+    incident_id uuid references incidents(id) on delete cascade not null,
+    message     text not null,
+    read        boolean default false,
+    created_at  timestamptz default now()
+);
+
+alter table notifications enable row level security;
+
+drop policy if exists "Users can view own notifications" on notifications;
+create policy "Users can view own notifications"
+    on notifications for select
+    using (auth.uid() = user_id);
+
+drop policy if exists "Users can update own notifications" on notifications;
+create policy "Users can update own notifications"
+    on notifications for update
+    using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own notifications" on notifications;
+create policy "Users can insert own notifications"
+    on notifications for insert
+    with check (auth.uid() = user_id);
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_publication_tables
+        where pubname = 'supabase_realtime'
+        and tablename = 'notifications'
+    ) then
+        alter publication supabase_realtime add table notifications;
+    end if;
+end $$;
+
+alter table notifications replica identity full;
+
+-- ============================================================
+-- TRIGGER: notify all users when a new incident is created
+-- ============================================================
+-- Recreate trigger: notify all users on new incident
+create or replace function public.handle_incident_update()
+returns trigger as $$
+declare
+    follower uuid;
+    msg text;
+begin
+    if new.followed_by is null or array_length(new.followed_by, 1) is null then
+        return new;
+    end if;
+
+    -- Determine what changed and set message accordingly
+    if old.status is distinct from new.status and new.status = 'resolved' then
+        msg := initcap(new.type) || ' you are following has been resolved';
+    elsif old.verification_status is distinct from new.verification_status 
+        and new.verification_status = 'verified_by_campus' then
+        msg := initcap(new.type) || ' you are following has been verified';
+    elsif old.upvotes is distinct from new.upvotes 
+        and new.upvotes >= 3 and old.upvotes < 3 then
+        msg := initcap(new.type) || ' you are following has been reported by others';
+    else
+        return new; -- no relevant change, skip
+    end if;
+
+    foreach follower in array new.followed_by
+    loop
+        insert into public.notifications (user_id, incident_id, message)
+        values (follower, new.id, msg);
+    end loop;
+
+    return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_incident_updated on incidents;
+create trigger on_incident_updated
+    after update on incidents
+    for each row
+    execute procedure public.handle_incident_update();
