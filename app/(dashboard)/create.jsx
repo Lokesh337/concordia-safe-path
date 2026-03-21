@@ -76,8 +76,7 @@ const Create = () => {
 
         setLoading(true)
 
-        await createIncident({ type, description, severity, latitude: pin.latitude, longitude: pin.longitude })
-
+        await createIncident({ type, description, severity, latitude: pin.latitude, longitude: pin.longitude, upvotes: 1 })
         setType("")
         setSeverity("")
         setDescription("")
