@@ -19,15 +19,15 @@ import { StyleSheet, Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons"
 
 // Constants
-import { Colors } from "../constants/Colors";
-import { Icons } from "../constants/Icons";
+import { Colors } from "../../constants/Colors";
+import { Icons } from "../../constants/Icons";
 
 // Themed components
-import ThemedText from "./ThemedText";
-import ThemedCard from "./ThemedCard";
+import ThemedText from "../ThemedText";
+import ThemedCard from "../ThemedCard";
 
 // Helpers
-import { getNearestBuilding, timeAgo } from "../lib/helpers";
+import { getNearestBuilding, timeAgo } from "../../lib/helpers";
 
 const IncidentCard = ({ item, onPress }) => (
     <Pressable onPress={onPress}>
@@ -65,31 +65,32 @@ const IncidentCard = ({ item, onPress }) => (
                     {item.description}
                 </ThemedText>
 
-                {/* Bottom badge row */}
                 <View style={styles.bottomRow}>
                     <View style={{ flex: 1 }} />
 
-                    {/* "Resolved" badge — only shown when status is resolved */}
-                    {item.status === 'resolved' && (
+                    {/* reported by — shown when upvotes >= 4, regardless of verified/resolved status */}
+                    {((item.upvotes ?? 0) >= 4) && (
+                        <View style={[styles.badgePill, { backgroundColor: Colors.badge.reportedBg }]}>
+                            <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
+                            <ThemedText style={[styles.badgeText, { color: Colors.badge.reported }]}>
+                                {`Reported by ${item.upvotes ?? 0}`}
+                            </ThemedText>
+                        </View>
+                    )}
+
+                    {/* resolved supersedes verified */}
+                    {item.status === 'resolved' ? (
                         <View style={[styles.badgePill, { backgroundColor: Colors.badge.resolvedBg }]}>
                             <Ionicons name="checkmark-done-outline" size={14} color={Colors.badge.resolved} />
                             <ThemedText style={[styles.badgeText, { color: Colors.badge.resolved }]}>Resolved</ThemedText>
                         </View>
-                    )}
+                    ) : item.verified ? (
+                        <View style={[styles.badgePill, { backgroundColor: Colors.badge.verifiedBg }]}>
+                            <Ionicons name="checkmark-circle" size={14} color={Colors.badge.verified} />
+                            <ThemedText style={[styles.badgeText, { color: Colors.badge.verified }]}>Verified by Campus</ThemedText>
+                        </View>
+                    ) : null}
 
-                    {/* Verification badge — "Verified by Campus" OR "Reported by X" */}
-                    <View style={[styles.badgePill, { backgroundColor: item.verified ? Colors.badge.verifiedBg : Colors.badge.reportedBg }]}>
-                        {item.verified
-                            ? <Ionicons name="checkmark-circle" size={14} color={Colors.badge.verified} />
-                            : <Ionicons name="time-outline" size={14} color={Colors.badge.reported} />
-                        }
-                        <ThemedText style={[styles.badgeText, { color: item.verified ? Colors.badge.verified : Colors.badge.reported }]}>
-                            {item.verified
-                                ? 'Verified by Campus'
-                                : `Reported by ${item.upvotes + 1}`  // +1 = the original reporter
-                            }
-                        </ThemedText>
-                    </View>
                 </View>
 
             </View>

@@ -62,9 +62,11 @@ alter table profiles add column if not exists notif_vandalism text default 'norm
 
 -- Drop and recreate policies to ensure they are always up to date
 drop policy if exists "Users can view own profile" on profiles;
-create policy "Users can view own profile"
+
+drop policy if exists "Public can view profiles" on profiles;
+create policy "Public can view profiles"
     on profiles for select
-    using (auth.uid() = id);
+    using (true);
 
 drop policy if exists "Users can update own profile" on profiles;
 create policy "Users can update own profile"
@@ -137,7 +139,8 @@ begin
 end $$;
 
 alter table incidents replica identity full;
-
+alter table incidents add column if not exists downvotes int default 0;
+alter table incidents add column if not exists witnessed int default 0;
 -- ============================================================
 -- TABLE: comments
 -- Supporting details added to existing incident reports.
@@ -166,6 +169,46 @@ drop policy if exists "Users can delete their own comments" on comments;
 create policy "Users can delete their own comments"
     on comments for delete
     using (auth.uid() = user_id);
+
+alter table comments
+drop constraint if exists comments_user_id_fkey,
+    add constraint comments_user_id_fkey
+        foreign key (user_id) references profiles(id) on delete cascade;
+
+-- ============================================================
+-- TABLE: incident_votes
+-- tracks per-user vote on an incident so votes persist across sessions
+-- ============================================================
+create table if not exists incident_votes (
+    id          uuid primary key default gen_random_uuid(),
+    incident_id uuid references incidents(id) on delete cascade not null,
+    user_id     uuid references auth.users(id) on delete cascade not null,
+    vote        text not null check (vote in ('up', 'down', 'witnessed')),
+    created_at  timestamptz default now(),
+    unique (incident_id, user_id)  -- one vote per user per incident
+    );
+
+alter table incident_votes enable row level security;
+
+drop policy if exists "Users can view own votes" on incident_votes;
+create policy "Users can view own votes"
+    on incident_votes for select
+                                          using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own votes" on incident_votes;
+create policy "Users can insert own votes"
+    on incident_votes for insert
+    with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update own votes" on incident_votes;
+create policy "Users can update own votes"
+    on incident_votes for update
+                                                      using (auth.uid() = user_id);
+
+drop policy if exists "Users can delete own votes" on incident_votes;
+create policy "Users can delete own votes"
+    on incident_votes for delete
+using (auth.uid() = user_id);
 
 -- ============================================================
 -- TABLE: emergency_contacts
