@@ -15,7 +15,7 @@
  * TODO (Goal 10): The notifications icon could show a badge count?
  */
 
-import { TouchableOpacity, View, StyleSheet, useColorScheme } from 'react-native'
+import { TouchableOpacity, View, StyleSheet, useColorScheme, Text } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from "../constants/Colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -89,17 +89,20 @@ const ThemedHeader = () => {
             <ThemedText title={true} style={styles.headerTitle}>{title}</ThemedText>
 
             {/* Right: notifications icon → navigates to /notifications */}
-            <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.bellContainer}>
+            <TouchableOpacity 
+                onPress={() => router.push('/notifications')} 
+                    style={styles.bellContainer}
+>
                 <Ionicons
                     name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
                     size={26}
-                    color={theme.title}
+                    color="#fff"
                 />
                 {unreadCount > 0 && (
                     <View style={styles.badge}>
-                        <ThemedText style={styles.badgeText}>
-                             {String(unreadCount > 9 ? '9+' : unreadCount)}
-                        </ThemedText>
+                        <Text style={styles.badgeText}>
+                            {String(unreadCount > 9 ? '9+' : unreadCount)}
+                        </Text>
                     </View>
                 )}
             </TouchableOpacity>
@@ -124,22 +127,24 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     bellContainer: {
-        position: 'relative',
-        width: 32,
-        alignItems: 'center',
-    },
+    position: 'relative',
+    width: 36,      // ← increase from 32
+    height: 36,     // ← add height
+    alignItems: 'center',
+    justifyContent: 'center',  // ← add this
+},
     badge: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        backgroundColor: Colors.warning,
-        borderRadius: 10,
-        minWidth: 18,
-        height: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 4,
-    },
+    position: 'absolute',
+    top: -4,
+    right: -8,  // ← adjust from -4
+    backgroundColor: Colors.warning,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+},
     badgeText: {
         color: '#fff',
         fontSize: 10,
