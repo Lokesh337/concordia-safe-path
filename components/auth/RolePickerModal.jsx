@@ -25,7 +25,7 @@ const RolePickerModal = ({ visible, onSelect, onClose }) => {
                                 <Ionicons name="close-circle" size={28} color={Colors.primaryDark} />
                             </TouchableOpacity>
                             <Image
-                                source={require('../../assets/img/concordia_logo_light.png')}
+                                source={require('../../assets/img/cons_safe.png')}
                                 style={styles.logo}
                                 resizeMode="contain"
                             />

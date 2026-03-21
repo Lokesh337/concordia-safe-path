@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, View, Alert, TouchableOpacity, ScrollView, Linking, Text } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { useUser } from '../../../hooks/useUser';
 import { Ionicons } from '@expo/vector-icons';
@@ -102,19 +102,7 @@ const Resources = () => {
     const openEmail = (email) => Linking.openURL(`mailto:${email}`);
 
     return (
-        <ThemedView style={styles.container} safe={true}>
-            <Stack.Screen options={{ headerShown: false }} />
-
-            {/* Custom header: back button, title, notification icon */}
-            <View style={styles.customHeader}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
-                    <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Emergency Resources</Text>
-                <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.headerButton}>
-                    <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-            </View>
+        <ThemedView style={styles.container}>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
@@ -246,23 +234,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F5F5F5',
-    },
-    customHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#2F5D98',
-        paddingVertical: 15,
-        paddingHorizontal: 10,
-    },
-    headerTitle: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    headerButton: {
-        width: 40,
-        alignItems: 'center',
     },
     scrollContent: {
         padding: 20,
