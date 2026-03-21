@@ -3,15 +3,21 @@ import { Ionicons } from "@expo/vector-icons"
 import ThemedText from "../ThemedText"
 import Spacer from "../Spacer"
 import { timeAgo } from "../../lib/helpers"
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
 
 // purely presentational — realtime subscription and fetch logic live in useIncidentDetail
 const CommentsSection = ({ comments, commentText, commentLoading, onChangeText, onSubmit }) => (
+
     <View style={styles.container}>
         <ThemedText title>Comments</ThemedText>
         <Spacer height={10} />
 
         {/* scrollable comment list, capped at 200px */}
-        <ScrollView style={styles.commentsContainer}>
+        <ScrollView
+            keyboardShouldPersistTaps="handled"
+            style={styles.commentsContainer}
+        >
             {comments.length === 0 && (
                 <ThemedText style={styles.noComments}>No comments yet.</ThemedText>
             )}
@@ -62,7 +68,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     commentsContainer: {
-        maxHeight: 200,
+        flex: 1,        // replace maxHeight: 200
         marginBottom: 10,
     },
     noComments: {
@@ -111,6 +117,13 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderTopWidth: 1,
         borderTopColor: "#E0E0E0",
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: "#fff",  // add this
+        marginHorizontal: -20,  // add this
+        paddingHorizontal: 20,
     },
     commentInput: {
         flex: 1,

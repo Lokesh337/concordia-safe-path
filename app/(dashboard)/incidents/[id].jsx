@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native"
+import {View, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard} from "react-native"
 import { useLocalSearchParams } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 
@@ -57,71 +57,80 @@ const IncidentDetails = () => {
     const netVotes = (incident.upvotes ?? 0) - (incident.downvotes ?? 0)
 
     return (
-        <ThemedView safe style={styles.container}>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={110}
+        >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
-            {/* HEADER — icon, title, severity, follow button */}
-            <IncidentHeader
-                incident={incident}
-                isFollowing={isFollowing}
-                followLoading={followLoading}
-                onFollow={handleFollow}
-            />
+                <ThemedView style={styles.container}>
 
-            <Spacer height={10} />
+                    {/* HEADER — icon, title, severity, follow button */}
+                    <IncidentHeader
+                        incident={incident}
+                        isFollowing={isFollowing}
+                        followLoading={followLoading}
+                        onFollow={handleFollow}
+                    />
 
-            {/* LOCATION */}
-            <View style={styles.location}>
-                <Ionicons name="location" size={16} color="#B74949" />
-                <ThemedText>
-                    {incident.latitude && incident.longitude
-                        ? getNearestBuilding(incident.latitude, incident.longitude)
-                        : "Unknown location"}
-                </ThemedText>
-                <ThemedText>, 70m away</ThemedText>
-            </View>
+                    <Spacer height={10} />
 
-            <Spacer height={10} />
+                    {/* LOCATION */}
+                    <View style={styles.location}>
+                        <Ionicons name="location" size={16} color="#B74949" />
+                        <ThemedText>
+                            {incident.latitude && incident.longitude
+                                ? getNearestBuilding(incident.latitude, incident.longitude)
+                                : "Unknown location"}
+                        </ThemedText>
+                        <ThemedText>, 70m away</ThemedText>
+                    </View>
 
-            {/* TIME — green dot + relative timestamp */}
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={styles.activeDot} />
-                <ThemedText style={styles.time}>{"Reported " + timeAgo(incident.created_at)}</ThemedText>
-            </View>
+                    <Spacer height={10} />
 
-            <Spacer height={20} />
-            <View style={styles.separator} />
+                    {/* TIME — green dot + relative timestamp */}
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <View style={styles.activeDot} />
+                        <ThemedText style={styles.time}>{"Reported " + timeAgo(incident.created_at)}</ThemedText>
+                    </View>
 
-            {/* PROGRESS BAR — submitted → reported → verified → resolved */}
-            <IncidentProgress incident={incident} netVotes={netVotes} />
+                    <Spacer height={20} />
+                    <View style={styles.separator} />
 
-            <View style={styles.separator} />
+                    {/* PROGRESS BAR — submitted → reported → verified → resolved */}
+                    <IncidentProgress incident={incident} netVotes={netVotes} />
 
-            {/* INTERACTIONS — votes, witnessed, staff actions */}
-            <IncidentInteractions
-                incident={incident}
-                userVote={userVote}
-                voteLoading={voteLoading}
-                actionLoading={actionLoading}
-                isStaff={isStaff}
-                userId={userId}
-                onVote={handleVote}
-                onWitnessed={handleWitnessed}
-                onVerify={handleVerify}
-                onResolve={handleResolve}
-            />
+                    <View style={styles.separator} />
 
-            <View style={styles.separator} />
+                    {/* INTERACTIONS — votes, witnessed, staff actions */}
+                    <IncidentInteractions
+                        incident={incident}
+                        userVote={userVote}
+                        voteLoading={voteLoading}
+                        actionLoading={actionLoading}
+                        isStaff={isStaff}
+                        userId={userId}
+                        onVote={handleVote}
+                        onWitnessed={handleWitnessed}
+                        onVerify={handleVerify}
+                        onResolve={handleResolve}
+                    />
 
-            {/* COMMENTS — list + input, realtime updates handled in hook */}
-            <CommentsSection
-                comments={comments}
-                commentText={commentText}
-                commentLoading={commentLoading}
-                onChangeText={setCommentText}
-                onSubmit={handleComment}
-            />
+                    <View style={styles.separator} />
 
-        </ThemedView>
+                    {/* COMMENTS — list + input, realtime updates handled in hook */}
+                    <CommentsSection
+                        comments={comments}
+                        commentText={commentText}
+                        commentLoading={commentLoading}
+                        onChangeText={setCommentText}
+                        onSubmit={handleComment}
+                    />
+
+                </ThemedView>
+            </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
     )
 }
 
