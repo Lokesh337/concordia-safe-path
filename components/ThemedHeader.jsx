@@ -23,6 +23,7 @@ import ThemedDrawer from './modals/ThemedDrawer'
 import { useState } from "react";
 import { usePathname, useRouter } from "expo-router";
 import ThemedText from "./ThemedText";
+import { useNotificationsContext } from "../contexts/NotificationsContext"
 
 // Maps route pathnames to display titles shown in the header center.
 // Dynamic routes are handled separately below.
@@ -48,6 +49,7 @@ const ThemedHeader = () => {
     const theme = Colors[colorScheme] ?? Colors.light
     const router = useRouter()
     const pathname = usePathname()
+    const { unreadCount } = useNotificationsContext()
 
     // Look up the title for the current path, with a fallback for
     // dynamic incident detail routes (/incidents/[id])
@@ -75,8 +77,19 @@ const ThemedHeader = () => {
             <ThemedText title={true} style={styles.headerTitle}>{title}</ThemedText>
 
             {/* Right: notifications icon → navigates to /notifications */}
-            <TouchableOpacity onPress={() => router.push('/notifications')}>
-                <Ionicons name="notifications-outline" size={26} color={theme.title} />
+            <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.bellContainer}>
+                <Ionicons
+                    name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
+                    size={26}
+                    color={theme.title}
+                />
+                {unreadCount > 0 && (
+                    <View style={styles.badge}>
+                        <ThemedText style={styles.badgeText}>
+                             {String(unreadCount > 9 ? '9+' : unreadCount)}
+                        </ThemedText>
+                    </View>
+                )}
             </TouchableOpacity>
         </View>
     )
@@ -96,5 +109,27 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         letterSpacing: 1,
+    },
+    bellContainer: {
+        position: 'relative',
+        width: 32,
+        alignItems: 'center',
+    },
+    badge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: Colors.warning,
+        borderRadius: 10,
+        minWidth: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 })
