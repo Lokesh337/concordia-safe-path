@@ -56,6 +56,9 @@ const Notifications = () => {
                                     : 'Near campus'}
                             </ThemedText>
                         </View>
+                        <ThemedText style={styles.message}>
+                            {item.message}
+                        </ThemedText>
                         <ThemedText style={[styles.severity, { color: severityColor }]}>
                             {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)}
                             {isVerified ? ' • Verified' : ''}
@@ -74,7 +77,6 @@ const Notifications = () => {
     return (
         <ThemedView style={styles.container} safe={true}>
 
-            {/* Mark all read — only shown if there are unread */}
             {unreadCount > 0 && (
                 <TouchableOpacity onPress={markAllAsRead} style={styles.markAllContainer}>
                     <ThemedText style={styles.markAll}>Mark all read</ThemedText>
@@ -131,6 +133,7 @@ const styles = StyleSheet.create({
     title: { fontWeight: 'bold', fontSize: 14 },
     locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
     location: { fontSize: 12, color: '#888' },
+    message: { fontSize: 12, color: Colors.primary, fontStyle: 'italic' },
     severity: { fontSize: 12, fontWeight: '600' },
     empty: { textAlign: 'center', marginTop: 60, opacity: 0.5 },
 })

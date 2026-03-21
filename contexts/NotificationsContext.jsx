@@ -190,25 +190,27 @@ export const useNotificationsContext = () => {
 
 const styles = StyleSheet.create({
     toast: {
-        position: 'absolute',
-        top: 60,
-        left: 16,
-        right: 16,
-        zIndex: 9999,
-        elevation: 10,
-    },
+    position: 'absolute',
+    top: 100,  // ← increase from 60 to push below the header
+    left: 16,
+    right: 16,
+    zIndex: 9999,
+    elevation: 10,
+},
     toastInner: {
-        backgroundColor: Colors.primaryDark,
-        borderRadius: 12,
-        padding: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-    },
+    backgroundColor: '#1a1a2e',  // ← darker, distinct from header
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderLeftWidth: 4,           // ← add accent border
+    borderLeftColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+},
     toastIcon: {
         width: 32,
         height: 32,
