@@ -331,7 +331,7 @@ begin
         and new.verification_status = 'verified_by_campus' then
         msg := initcap(new.type) || ' you are following has been verified';
     elsif old.upvotes is distinct from new.upvotes 
-        and new.upvotes >= 3 and old.upvotes < 3 then
+        and new.upvotes >= 4 and old.upvotes < 3 then
         msg := initcap(new.type) || ' you are following has been reported by others';
     else
         return new; -- no relevant change, skip
