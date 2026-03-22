@@ -206,15 +206,11 @@ const Preferences = () => {
             <Stack.Screen options={{ headerShown: false, gestureEnabled: !isFirstTime && !prefUpdated }} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-                {isFirstTime ? (
+                {isFirstTime &&
                     <ThemedText style={styles.onboardingText}>
                         Customize your app experience and notification levels.
                     </ThemedText>
-                ) : (
-                    <ThemedText style={[styles.subtitle, { color: theme.text }]}>
-                        Manage App settings and alerts
-                    </ThemedText>
-                )}
+                }
 
                 <View style={[styles.section, { backgroundColor: theme.uiBackground }]}>
                     <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: theme.title }]}>App Settings</ThemedText>
