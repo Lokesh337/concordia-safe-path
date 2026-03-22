@@ -25,7 +25,7 @@ import Spacer from '../../components/Spacer'
 import ThemedLoader from "../../components/ThemedLoader";
 import IncidentTypeModal from '../../components/modals/IncidentTypeModal'
 import OfflineActionModal from "../../components/offline/OfflineActionModal"
-
+import ReportSuccessModal from '../../components/modals/ReportSuccessModal'
 
 //hooks
 import {useIncidents} from "../../hooks/useIncidents";
@@ -53,6 +53,8 @@ const Create = () => {
     const router = useRouter()
 
     const [userCoords, setUserCoords] = useState(null)
+    const [successModal, setSuccessModal] = useState(false)
+
 
     useEffect(() => {
         async function getLocation() {
@@ -71,21 +73,16 @@ const Create = () => {
 
     async function handleSubmit() {
         if (!isOnline) { setOfflineModal(true); return }
-
         if (!type.trim() || !severity.trim() || !pin) return
 
         setLoading(true)
-
         await createIncident({ type, description, severity, latitude: pin.latitude, longitude: pin.longitude, upvotes: 1 })
         setType("")
         setSeverity("")
         setDescription("")
         setPin(null)
-
-        router.replace("/incidents")
         setLoading(false)
-
-
+        setSuccessModal(true)
     }
 
     return (
@@ -211,7 +208,13 @@ const Create = () => {
                             setTypeModalOpen(false)
                         }}
                     />
-
+                    <ReportSuccessModal
+                        visible={successModal}
+                        onContinue={() => {
+                            setSuccessModal(false)
+                            router.replace('/incidents')
+                        }}
+                    />
                 </ThemedView>
             </ScrollView>
         </TouchableWithoutFeedback>

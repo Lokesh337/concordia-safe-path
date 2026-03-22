@@ -8,7 +8,8 @@ import { useNotificationsContext } from '../../contexts/NotificationsContext'
 import { INCIDENT_TYPES } from '../../constants/Incidents'
 import { Colors } from '../../constants/Colors'
 import { Ionicons } from '@expo/vector-icons'
-import { Icons } from '../../constants/Icons'
+import { IncidentIconMap } from '../../constants/Icons'
+
 import { getNearestBuilding } from '../../lib/helpers'
 
 const Notifications = () => {
@@ -36,11 +37,9 @@ const Notifications = () => {
                 <ThemedCard style={[styles.card, !item.read && styles.unread]}>
                     {/* Icon */}
                     <View style={[styles.iconContainer, { backgroundColor: severityColor }]}>
-                        <Ionicons
-                            name={Icons.type[incident.type] ?? 'alert-circle'}
-                            size={24}
-                            color="white"
-                        />
+                        {IncidentIconMap[incident.type]
+                            ? IncidentIconMap[incident.type]({ size: 24, color: '#fff' })
+                            : <Ionicons name="alert-circle" size={24} color="#fff" />}
                     </View>
 
                     {/* Content */}

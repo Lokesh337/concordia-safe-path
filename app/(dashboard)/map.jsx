@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState,  } from "react"
 import {StyleSheet, View, TouchableOpacity, Keyboard} from 'react-native'
 import PulsingButton from '../../components/PulsingButton'
-import MapView, { Marker, Circle, Polyline, Polygon } from "react-native-maps"
+import MapView, { Marker, Circle, Polygon } from "react-native-maps"
 import * as Location from "expo-location"
 
 import { useIncidents } from "../../hooks/useIncidents"
@@ -240,22 +240,25 @@ const Map = () => {
           ))}
 
           {incidents
-              .filter((i) => i.latitude && i.longitude)
+              .filter((i) => i.latitude && i.longitude && i.status !== 'resolved')
               .map((incident) => (
                   <Marker
-                      onPress={() => setSelectedIncidentId(incident.id)}
-                      key={incident.id}
-                      coordinate={{ latitude: incident.latitude, longitude: incident.longitude }}
-                      title={incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
-                      description={incident.location}
-                      pinColor={Colors.severity[incident.severity]}
+                    onPress={() => setSelectedIncidentId(incident.id)}
+                    key={incident.id}
+                    coordinate={{ latitude: incident.latitude, longitude: incident.longitude }}
+                    title={`${incident.type.charAt(0).toUpperCase() + incident.type.slice(1)} — ${incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)} Tension`}                    description={[
+                    incident.upvotes >= 4 && `Reported by ${incident.upvotes}`,
+                    incident.verified && 'Verified by Campus',
+                    incident.status === 'resolved' && 'Resolved',
+                    ].filter(Boolean).join(' • ') || null}
+                    pinColor={Colors.severity[incident.severity]}
                   />
               ))
           }
 
           {/* circle only on tapped or alerted incident */}
           {incidents
-              .filter((i) => i.latitude && i.longitude && (i.id === selectedIncidentId || i.id === alertIncidentId))
+              .filter((i) => i.latitude && i.longitude && i.status !== 'resolved' && (i.id === selectedIncidentId || i.id === alertIncidentId))
               .map((incident) => (
                   <Circle
                       key={`circle-${incident.id}`}
@@ -467,6 +470,26 @@ const styles = StyleSheet.create({
   routeSubText: {
     color: "#7F1D1D",
     textAlign: "center",
+    marginTop: 4,
+  },
+
+  callout: {
+    width: 180,
+    padding: 8,
+  },
+  calloutTitle: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#000',
+  },
+  calloutSeverity: {
+    fontSize: 12,
+    color: '#555',
+    marginTop: 2,
+  },
+  calloutHint: {
+    fontSize: 11,
+    color: Colors.primary,
     marginTop: 4,
   },
 })

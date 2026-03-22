@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ThemedText from "../../../components/ThemedText";
 import ThemedView from "../../../components/ThemedView";
 import ThemedTextInput from "../../../components/ThemedTextInput";
+import EmergencyNotifiedModal from '../../../components/modals/EmergencyNotifiedModal'
 
 const Resources = () => {
     const { user } = useUser();
@@ -18,6 +19,8 @@ const Resources = () => {
     const [editingId, setEditingId] = useState(null);
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
+    const [notifiedModal, setNotifiedModal] = useState(false)
+
 
     // Accordion States for Campus Resources
     const [showMentalHealth, setShowMentalHealth] = useState(false);
@@ -213,6 +216,25 @@ const Resources = () => {
                         </View>
                     )}
                 </View>
+
+                {/* --- NOTIFY EMERGENCY CONTACT BUTTON --- */}
+                <TouchableOpacity
+                    style={styles.blueButton}
+                    onPress={() => {
+                        if (contacts.length === 0) {
+                            Alert.alert('No Contacts', 'Please add an emergency contact first.')
+                            return
+                        }
+                        setNotifiedModal(true)
+                    }}
+                >
+                    <ThemedText style={styles.blueButtonText}>Notify Emergency Contact</ThemedText>
+                </TouchableOpacity>
+
+                <EmergencyNotifiedModal
+                    visible={notifiedModal}
+                    onClose={() => setNotifiedModal(false)}
+                />
 
                 {/* --- 911 EMERGENCY BUTTON --- */}
                 <View style={styles.emergencyContainer}>
