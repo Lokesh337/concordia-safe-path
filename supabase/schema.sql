@@ -318,13 +318,22 @@ alter table notifications replica identity full;
 create or replace function public.handle_new_incident()
 returns trigger as $$
 begin
-    insert into public.notifications (user_id, incident_id, message)
-    select
-        p.id,
-        new.id,
-        initcap(new.type) || ' reported near campus'
-    from public.profiles p;
-    return new;
+insert into public.notifications (user_id, incident_id, message)
+select
+    p.id,
+    new.id,
+    initcap(new.type) || ' reported near campus'
+from public.profiles p
+where coalesce(
+              case new.type
+                  when 'protest' then p.notif_protest
+                  when 'blockade' then p.notif_road
+                  when 'construction' then p.notif_construction
+                  when 'vandalism' then p.notif_vandalism
+                  end,
+              'normal'
+      ) != 'muted';
+return new;
 end;
 $$ language plpgsql security definer;
 

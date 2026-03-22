@@ -58,7 +58,7 @@ const ToastBanner = ({ toast, onPress, onDismiss }) => {
 
 // ── Provider ───────────────────────────────────────────────────
 export const NotificationsProvider = ({ children }) => {
-    const { user } = useUser()
+    const { user, profile } = useUser()
     const router = useRouter()
     const [notifications, setNotifications] = useState([])
     const [loading, setLoading] = useState(true)
@@ -137,20 +137,32 @@ export const NotificationsProvider = ({ children }) => {
                         .then(({ data }) => {
                             if (data) {
                                 setNotifications(prev => [data, ...prev])
-                                setToast(data)
 
-                                // Fire local notification (works in Expo Go)
-                                Notifications.scheduleNotificationAsync({
-                                    content: {
-                                        title: '🔔 New Incident Alert',
-                                        body: data.message,
-                                        data: { notificationId: data.id },
-                                        ...(Platform.OS === 'android'
-                                            ? { channelId: 'proximity-alerts' }
-                                            : {}),
-                                    },
-                                    trigger: null,
-                                }).catch(() => {})
+                                // check user preference for this incident type
+                                const prefKey = {
+                                    protest: 'notif_protest',
+                                    blockade: 'notif_road',
+                                    construction: 'notif_construction',
+                                    vandalism: 'notif_vandalism',
+                                }[data.incidents?.type]
+                                const pref = profile?.[prefKey] ?? 'normal'
+
+                                if (pref === 'normal') {
+                                    setToast(data)
+
+                                    // Fire local notification (works in Expo Go)
+                                    Notifications.scheduleNotificationAsync({
+                                        content: {
+                                            title: '🔔 New Incident Alert',
+                                            body: data.message,
+                                            data: { notificationId: data.id },
+                                            ...(Platform.OS === 'android'
+                                                ? { channelId: 'proximity-alerts' }
+                                                : {}),
+                                        },
+                                        trigger: null,
+                                    }).catch(() => {})
+                                }
                             }
                         })
                 }
