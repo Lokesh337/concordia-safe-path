@@ -207,7 +207,7 @@ const Preferences = () => {
                 ) : null}
 
                 <View style={styles.section}>
-                    <ThemedText type="defaultSemiBold" style={{ marginBottom: 15 }}>App Settings</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={{ marginBottom: 15, color: '#333' }}>App Settings</ThemedText>
 
                     <View style={styles.settingRow}>
                         <View style={{ flex: 1 }}>
@@ -234,7 +234,7 @@ const Preferences = () => {
                 </View>
 
                 <View style={styles.section}>
-                    <ThemedText type="defaultSemiBold">Distance-Based Alerts</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={{ color: '#333' }}>Distance-Based Alerts</ThemedText>
                     <ThemedText style={styles.helperText}>Incidents outside these radii will be completely muted.</ThemedText>
 
                     <View style={styles.distanceRow}>
@@ -264,7 +264,7 @@ const Preferences = () => {
                 </View>
 
                 <View style={styles.section}>
-                    <ThemedText type="defaultSemiBold">Incident Type Overrides</ThemedText>
+                    <ThemedText type="bold" style={{ color: '#333' }}>Incident Type Overrides</ThemedText>
                     <ThemedText style={styles.helperText}>These settings override the distance rules above.</ThemedText>
 
                     <View style={{ marginTop: 10 }}>
@@ -302,7 +302,17 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
     onboardingText: { marginBottom: 20, opacity: 0.7, fontSize: 14 },
-    section: { marginBottom: 20, backgroundColor: 'rgba(150, 150, 150, 0.05)', padding: 15, borderRadius: 12 },
+    section: {
+        marginBottom: 20,
+        backgroundColor: '#FFFFFF',
+        padding: 18,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 3,
+        elevation: 2,
+    },
     helperText: { fontSize: 13, opacity: 0.7, marginTop: 4, marginBottom: 5 },
     settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 },
     divider: { height: 1, backgroundColor: 'rgba(150, 150, 150, 0.1)', marginVertical: 10 },
