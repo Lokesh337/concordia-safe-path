@@ -314,6 +314,25 @@ alter table notifications replica identity full;
 -- TRIGGER: notify all users when a new incident is created
 -- ============================================================
 -- Recreate trigger: notify all users on new incident
+
+create or replace function public.handle_new_incident()
+returns trigger as $$
+begin
+    insert into public.notifications (user_id, incident_id, message)
+    select
+        p.id,
+        new.id,
+        initcap(new.type) || ' reported near campus'
+    from public.profiles p;
+    return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_incident_created on incidents;
+create trigger on_incident_created
+    after insert on incidents
+    for each row execute procedure public.handle_new_incident();
+
 create or replace function public.handle_incident_update()
 returns trigger as $$
 declare
@@ -331,7 +350,7 @@ begin
         and new.verification_status = 'verified_by_campus' then
         msg := initcap(new.type) || ' you are following has been verified';
     elsif old.upvotes is distinct from new.upvotes 
-        and new.upvotes >= 4 and old.upvotes < 3 then
+        and new.upvotes >= 4 and old.upvotes < 4 then
         msg := initcap(new.type) || ' you are following has been reported by others';
     else
         return new; -- no relevant change, skip
