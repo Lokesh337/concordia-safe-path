@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState,  } from "react"
-import {StyleSheet, View, TouchableOpacity, Text, Keyboard} from 'react-native'
+import {StyleSheet, View, TouchableOpacity, Keyboard} from 'react-native'
 import PulsingButton from '../../components/PulsingButton'
-import MapView, { Marker, Circle, Polyline, Polygon, Callout } from "react-native-maps"
-import { useRouter } from 'expo-router'
+import MapView, { Marker, Circle, Polygon } from "react-native-maps"
 import * as Location from "expo-location"
 
 import { useIncidents } from "../../hooks/useIncidents"
@@ -37,7 +36,6 @@ const Map = () => {
   const [routesDismissed, setRoutesDismissed] = useState(false)
   const originSnapshot = useRef(null)
   const mapRef = useRef(null)
-  const router = useRouter()
 
   const { incidents } = useIncidents()
   const { routes } = useRoutes(navigatingToSafety ? originSnapshot.current : location, destination)

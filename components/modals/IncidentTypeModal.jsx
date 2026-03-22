@@ -15,10 +15,9 @@
  */
 
 import { View, Modal, TouchableWithoutFeedback, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../../constants/Colors'
 import ThemedText from './../ThemedText'
-import { Icons, INCIDENT_TYPES, IncidentIconMap } from "../../constants/Icons";
+import { INCIDENT_TYPES, IncidentIconMap } from "../../constants/Icons";
 
 const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
     const colorScheme = useColorScheme()

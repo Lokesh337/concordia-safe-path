@@ -8,7 +8,6 @@ import { useNotificationsContext } from '../../contexts/NotificationsContext'
 import { INCIDENT_TYPES } from '../../constants/Incidents'
 import { Colors } from '../../constants/Colors'
 import { Ionicons } from '@expo/vector-icons'
-import { Icons } from '../../constants/Icons'
 import { IncidentIconMap } from '../../constants/Icons'
 
 import { getNearestBuilding } from '../../lib/helpers'
