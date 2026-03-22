@@ -5,7 +5,9 @@ import { useUser } from '../hooks/useUser'
 import { useRouter } from 'expo-router'
 import { Colors } from '../constants/Colors'
 import { Ionicons } from '@expo/vector-icons'
+import { getDistance } from '../lib/helpers'
 import * as Notifications from 'expo-notifications'
+import * as Location from 'expo-location'
 import Constants from 'expo-constants'
 
 const isExpoGo = Constants.appOwnership === 'expo'
@@ -63,6 +65,25 @@ export const NotificationsProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([])
     const [loading, setLoading] = useState(true)
     const [toast, setToast] = useState(null)
+
+    useEffect(() => { profileRef.current = profile }, [profile])
+
+    // track user location for distance-based filtering
+    const locationRef = useRef(null)
+    const profileRef = useRef(profile)
+
+    useEffect(() => {
+        let watcher
+        ;(async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync()
+            if (status !== 'granted') return
+            watcher = await Location.watchPositionAsync(
+                { accuracy: Location.Accuracy.Balanced, distanceInterval: 50 },
+                (pos) => { locationRef.current = pos.coords }
+            )
+        })()
+        return () => watcher?.remove()
+    }, [])
 
     const fetchNotifications = useCallback(async () => {
         if (!user) return
@@ -136,33 +157,55 @@ export const NotificationsProvider = ({ children }) => {
                         .single()
                         .then(({ data }) => {
                             if (data) {
-                                setNotifications(prev => [data, ...prev])
+                                const incident = data.incidents
 
-                                // check user preference for this incident type
+                                // ── distance-based pref ──
+                                let distancePref = 'normal'
+                                const userLoc = locationRef.current
+                                if (userLoc && incident?.latitude && incident?.longitude) {
+                                    const dist = getDistance(
+                                        userLoc.latitude, userLoc.longitude,
+                                        incident.latitude, incident.longitude
+                                    )
+                                    const normalRadius = profileRef.current?.distance_normal ?? 500
+                                    const silentRadius = profileRef.current?.distance_silent ?? 1000
+
+                                    if (dist > silentRadius) distancePref = 'muted'
+                                    else if (dist > normalRadius) distancePref = 'silent'
+                                }
+
+                                // ── type-based pref ──
                                 const prefKey = {
                                     protest: 'notif_protest',
                                     blockade: 'notif_road',
                                     construction: 'notif_construction',
                                     vandalism: 'notif_vandalism',
-                                }[data.incidents?.type]
-                                const pref = profile?.[prefKey] ?? 'normal'
+                                }[incident?.type]
+                                const typePref = profileRef.current?.[prefKey] ?? 'normal'
+                                const finalPref = typePref !== 'normal' ? typePref : distancePref
 
-                                if (pref === 'normal') {
-                                    setToast(data)
+                                // distance muted — don't even show in list
+                                if (distancePref === 'muted') return
 
-                                    // Fire local notification (works in Expo Go)
-                                    Notifications.scheduleNotificationAsync({
-                                        content: {
-                                            title: '🔔 New Incident Alert',
-                                            body: data.message,
-                                            data: { notificationId: data.id },
-                                            ...(Platform.OS === 'android'
-                                                ? { channelId: 'proximity-alerts' }
-                                                : {}),
-                                        },
-                                        trigger: null,
-                                    }).catch(() => {})
-                                }
+                                // add to list (silent and normal both show in tray)
+                                setNotifications(prev => [data, ...prev])
+
+                                // only toast/push for normal
+                                if (finalPref !== 'normal') return
+
+                                setToast(data)
+
+                                Notifications.scheduleNotificationAsync({
+                                    content: {
+                                        title: '🔔 New Incident Alert',
+                                        body: data.message,
+                                        data: { notificationId: data.id },
+                                        ...(Platform.OS === 'android'
+                                            ? { channelId: 'proximity-alerts' }
+                                            : {}),
+                                    },
+                                    trigger: null,
+                                }).catch(() => {})
                             }
                         })
                 }
