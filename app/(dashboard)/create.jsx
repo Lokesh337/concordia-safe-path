@@ -101,6 +101,7 @@ const Create = () => {
                         {userCoords && (
                             <MapView
                                 style={styles.map}
+                                userInterfaceStyle={colorScheme === 'dark' ? 'dark' : 'light'}
                                 initialRegion={{
                                     latitude: 45.4948,
                                     longitude: -73.5772,
