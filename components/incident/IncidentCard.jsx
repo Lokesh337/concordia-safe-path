@@ -18,9 +18,10 @@
 import { StyleSheet, Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons"
 
+
 // Constants
 import { Colors } from "../../constants/Colors";
-import { Icons } from "../../constants/Icons";
+import { IncidentIconMap } from "../../constants/Icons"
 
 // Themed components
 import ThemedText from "../ThemedText";
@@ -37,7 +38,11 @@ const IncidentCard = ({ item, onPress }) => (
             {/* Icon box — background color encodes incident type */}
             <View style={[styles.iconBox, { backgroundColor: Colors.type[item.type] ?? '#888' }]}>
                 {/* Falls back to 'alert-circle' icon if the type isn't in Icons.type */}
-                <Ionicons name={Icons.type[item.type] ?? 'alert-circle'} size={28} color="#fff" />
+                <View style={[styles.iconBox, { backgroundColor: Colors.severity[item.severity] ?? Colors.primaryDark }]}>
+                    {IncidentIconMap[item.type]
+                        ? IncidentIconMap[item.type]({ size: 28, color: '#fff' })
+                        : <Ionicons name="alert-circle" size={28} color="#fff" />}
+                </View>
             </View>
 
             <View style={styles.cardContent}>

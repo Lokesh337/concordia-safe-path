@@ -18,7 +18,7 @@ import { View, Modal, TouchableWithoutFeedback, TouchableOpacity, StyleSheet, us
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../../constants/Colors'
 import ThemedText from './../ThemedText'
-import { Icons, INCIDENT_TYPES } from "../../constants/Icons";
+import { Icons, INCIDENT_TYPES, IncidentIconMap } from "../../constants/Icons";
 
 const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
     const colorScheme = useColorScheme()
@@ -48,12 +48,10 @@ const IncidentTypeModal = ({ visible, onClose, onSelect }) => {
                                         onPress={() => onSelect(type.value)}
                                     >
                                         {/* Colored icon box — color keyed by incident type */}
-                                        <View style={[styles.iconBox, { backgroundColor: Colors.type[type.value] }]}>
-                                            <Ionicons
-                                                name={Icons.type[type.value]}
-                                                size={36}
-                                                color={Colors.white}
-                                            />
+                                        <View style={[styles.iconBox, { backgroundColor: Colors.primaryDark }]}>
+                                            {IncidentIconMap[type.value]
+                                                ? IncidentIconMap[type.value]({ size: 36, color: Colors.white })
+                                                : null}
                                         </View>
                                         <ThemedText style={styles.label}>{type.label}</ThemedText>
                                     </TouchableOpacity>

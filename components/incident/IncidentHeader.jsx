@@ -2,15 +2,17 @@ import { View, TouchableOpacity, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import ThemedText from "../ThemedText"
 import { Colors } from "../../constants/Colors"
-import { Icons } from "../../constants/Icons"
+import { IncidentIconMap } from "../../constants/Icons"
 
 // icon box color comes from Colors.type, falls back to grey for unknown types
 const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow }) => (
     <View style={styles.header}>
 
         {/* type icon */}
-        <View style={[styles.iconBox, { backgroundColor: Colors.type[incident.type] ?? "#888" }]}>
-            <Ionicons name={Icons.type[incident.type] ?? "alert-circle"} size={36} color="#fff" />
+        <View style={[styles.iconBox,  { backgroundColor: Colors.severity[incident.severity] ?? Colors.primaryDark }]}>
+            {IncidentIconMap[incident.type]
+                ? IncidentIconMap[incident.type]({ size: 36, color: '#fff' })
+                : <Ionicons name="alert-circle" size={36} color="#fff" />}
         </View>
 
         {/* severity badge + incident type title */}
