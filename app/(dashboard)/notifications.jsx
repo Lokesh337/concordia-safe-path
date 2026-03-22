@@ -1,36 +1,96 @@
-import { StyleSheet, FlatList } from 'react-native'
+import { StyleSheet, FlatList, TouchableOpacity, View } from 'react-native'
+import { useRouter} from 'expo-router'
 import ThemedView from '../../components/ThemedView'
 import ThemedText from '../../components/ThemedText'
 import ThemedCard from '../../components/ThemedCard'
-import Spacer from '../../components/Spacer'
-
-const MOCK_NOTIFICATIONS = [
-    { id: '1', title: 'New Incident Reported', body: 'A protest was reported near Hall Building', time: '2m ago' },
-    { id: '2', title: 'Incident Resolved', body: 'Construction on EV Building has been resolved', time: '1h ago' },
-    { id: '3', title: 'New Incident Reported', body: 'Emergency reported near MB Building', time: '3h ago' },
-]
+import ThemedLoader from '../../components/ThemedLoader'
+import { useNotificationsContext } from '../../contexts/NotificationsContext'
+import { INCIDENT_TYPES } from '../../constants/Incidents'
+import { Colors } from '../../constants/Colors'
+import { Ionicons } from '@expo/vector-icons'
+import { Icons } from '../../constants/Icons'
+import { getNearestBuilding } from '../../lib/helpers'
 
 const Notifications = () => {
+    const INCIDENT_TYPE_MAP = Object.fromEntries(
+        (INCIDENT_TYPES ?? []).map(t => [t.value, t])
+    )
+    const router = useRouter()
+    const { notifications, loading, markAsRead, markAllAsRead, unreadCount } = useNotificationsContext()
+
+    const handlePress = async (notification) => {
+        if (!notification.read) await markAsRead(notification.id)
+        router.push(`/incidents/${notification.incident_id}`)
+    }
+
+    const renderItem = ({ item }) => {
+        const incident = item.incidents
+        if (!incident) return null
+
+        const incidentConfig = INCIDENT_TYPE_MAP[incident.type] ?? {}
+        const severityColor = Colors.severity[incident.severity] ?? '#888'
+        const isVerified = incident.verification_status === 'verified_by_campus' || incident.verified
+
+        return (
+            <TouchableOpacity onPress={() => handlePress(item)} activeOpacity={0.7}>
+                <ThemedCard style={[styles.card, !item.read && styles.unread]}>
+                    {/* Icon */}
+                    <View style={[styles.iconContainer, { backgroundColor: severityColor }]}>
+                        <Ionicons
+                            name={Icons.type[incident.type] ?? 'alert-circle'}
+                            size={24}
+                            color="white"
+                        />
+                    </View>
+
+                    {/* Content */}
+                    <View style={styles.content}>
+                        <ThemedText style={styles.title}>
+                            {incidentConfig.label ?? incident.type}
+                        </ThemedText>
+                        <View style={styles.locationRow}>
+                            <Ionicons name="location-outline" size={12} color="#888" />
+                            <ThemedText style={styles.location}>
+                                {incident.latitude && incident.longitude
+                                    ? getNearestBuilding(incident.latitude, incident.longitude)
+                                    : 'Near campus'}
+                            </ThemedText>
+                        </View>
+                        <ThemedText style={styles.message}>
+                            {item.message}
+                        </ThemedText>
+                        <ThemedText style={[styles.severity, { color: severityColor }]}>
+                            {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)}
+                            {isVerified ? ' • Verified' : ''}
+                        </ThemedText>
+                    </View>
+
+                    {/* Chevron */}
+                    <Ionicons name="chevron-forward" size={18} color="#aaa" />
+                </ThemedCard>
+            </TouchableOpacity>
+        )
+    }
+
+    if (loading) return <ThemedLoader />
+
     return (
-        <ThemedView style={[styles.container, {margin: 0, padding:0}]} safe={true}>
-            <ThemedText title={true} style={styles.heading}>Notifications</ThemedText>
-            <Spacer />
+        <ThemedView style={styles.container} safe={true}>
+
+            {unreadCount > 0 && (
+                <TouchableOpacity onPress={markAllAsRead} style={styles.markAllContainer}>
+                    <ThemedText style={styles.markAll}>Mark all read</ThemedText>
+                </TouchableOpacity>
+            )}
 
             <FlatList
-                data={MOCK_NOTIFICATIONS}
+                data={notifications}
                 keyExtractor={(item) => item.id}
+                renderItem={renderItem}
                 ListEmptyComponent={
                     <ThemedText style={styles.empty}>No notifications yet.</ThemedText>
                 }
-                renderItem={({ item }) => (
-                    <ThemedCard style={styles.card}>
-                        <ThemedView style={styles.row}>
-                            <ThemedText style={styles.title}>{item.title}</ThemedText>
-                            <ThemedText style={styles.time}>{item.time}</ThemedText>
-                        </ThemedView>
-                        <ThemedText style={styles.body}>{item.body}</ThemedText>
-                    </ThemedCard>
-                )}
+                contentContainerStyle={styles.list}
             />
         </ThemedView>
     )
@@ -39,41 +99,41 @@ const Notifications = () => {
 export default Notifications
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'stretch',
+    container: { flex: 1 },
+    markAllContainer: {
+        alignItems: 'flex-end',
+        paddingHorizontal: '5%',
+        paddingVertical: 6,
     },
-    heading: {
-        fontWeight: 'bold',
-        fontSize: 18,
-        textAlign: 'center',
+    markAll: {
+        fontSize: 13,
+        color: Colors.primary,
     },
+    list: { paddingBottom: 20 },
     card: {
         marginHorizontal: '5%',
         marginVertical: 6,
         padding: 14,
-        gap: 6,
-    },
-    row: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        backgroundColor: 'transparent',
+        alignItems: 'center',
+        gap: 12,
     },
-    title: {
-        fontWeight: 'bold',
-        fontSize: 14,
+    unread: {
+        borderLeftWidth: 3,
+        borderLeftColor: Colors.primary,
     },
-    time: {
-        fontSize: 12,
-        opacity: 0.5,
+    iconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    body: {
-        fontSize: 13,
-        opacity: 0.7,
-    },
-    empty: {
-        textAlign: 'center',
-        marginTop: 60,
-        opacity: 0.5,
-    },
+    content: { flex: 1, gap: 3 },
+    title: { fontWeight: 'bold', fontSize: 14 },
+    locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    location: { fontSize: 12, color: '#888' },
+    message: { fontSize: 12, color: Colors.primary, fontStyle: 'italic' },
+    severity: { fontSize: 12, fontWeight: '600' },
+    empty: { textAlign: 'center', marginTop: 60, opacity: 0.5 },
 })

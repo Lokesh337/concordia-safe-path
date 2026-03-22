@@ -15,7 +15,7 @@
  * TODO (Goal 10): The notifications icon could show a badge count?
  */
 
-import { TouchableOpacity, View, StyleSheet, useColorScheme } from 'react-native'
+import { TouchableOpacity, View, StyleSheet, useColorScheme, Text } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from "../constants/Colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +23,7 @@ import ThemedDrawer from './modals/ThemedDrawer'
 import { useState } from "react";
 import { usePathname, useRouter } from "expo-router";
 import ThemedText from "./ThemedText";
+import { useNotificationsContext } from "../contexts/NotificationsContext"
 import {useUser} from "../hooks/useUser";
 
 // Maps route pathnames to display titles shown in the header center.
@@ -49,6 +50,7 @@ const ThemedHeader = () => {
     const theme = Colors[colorScheme] ?? Colors.light
     const router = useRouter()
     const pathname = usePathname()
+    const { unreadCount } = useNotificationsContext()
 
     // Look up the title for the current path, with a fallback for
     // dynamic incident detail routes (/incidents/[id])
@@ -87,8 +89,22 @@ const ThemedHeader = () => {
             <ThemedText title={true} style={styles.headerTitle}>{title}</ThemedText>
 
             {/* Right: notifications icon → navigates to /notifications */}
-            <TouchableOpacity onPress={() => router.push('/notifications')}>
-                <Ionicons name="notifications-outline" size={26} color='#fff' />
+            <TouchableOpacity 
+                onPress={() => router.push('/notifications')} 
+                    style={styles.bellContainer}
+>
+                <Ionicons
+                    name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
+                    size={26}
+                    color="#fff"
+                />
+                {unreadCount > 0 && (
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>
+                            {String(unreadCount > 9 ? '9+' : unreadCount)}
+                        </Text>
+                    </View>
+                )}
             </TouchableOpacity>
         </View>
     )
@@ -109,5 +125,29 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         letterSpacing: 1,
         color: '#fff',
+    },
+    bellContainer: {
+    position: 'relative',
+    width: 36,      // ← increase from 32
+    height: 36,     // ← add height
+    alignItems: 'center',
+    justifyContent: 'center',  // ← add this
+},
+    badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,  // ← adjust from -4
+    backgroundColor: Colors.warning,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+},
+    badgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 })

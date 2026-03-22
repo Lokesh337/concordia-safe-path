@@ -15,6 +15,7 @@ import { useProximityAlerts } from "../../hooks/useProximityAlerts";
 import ProximityAlertModal from "../../components/modals/ProximityAlertModal";
 import LocationWakeup from "../../components/LocationWakeup";
 import {useNotifications} from "../../hooks/useNotifications";
+import { NotificationsProvider } from '../../contexts/NotificationsContext'
 
 export default function DashboardLayout() {
     const colorScheme = useColorScheme()
@@ -33,6 +34,7 @@ export default function DashboardLayout() {
     const isOnboarding = pathname === '/menu/preferences' && !profile?.preferences_completed
     return (
         <UserOnly>
+            <NotificationsProvider>
             <ThemedView style={{ flex: 1 }}>
                 <ThemedHeader />
                 <OfflineBanner />
@@ -149,6 +151,7 @@ export default function DashboardLayout() {
                 />
                 <LocationWakeup/>
             </ThemedView>
+            </NotificationsProvider>
         </UserOnly>
     )
 }
