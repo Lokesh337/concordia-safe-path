@@ -13,11 +13,6 @@ const EmergencyNotifiedModal = ({ visible, onClose }) => (
     >
         <View style={styles.overlay}>
             <View style={styles.card}>
-                {/* corner dots */}
-                <View style={[styles.dot, { top: 12, left: 12 }]} />
-                <View style={[styles.dot, { top: 12, right: 12 }]} />
-                <View style={[styles.dot, { bottom: 12, left: 12 }]} />
-                <View style={[styles.dot, { bottom: 12, right: 12 }]} />
 
                 <View style={styles.iconCircle}>
                     <Ionicons name="volume-high" size={32} color={AMBER} />
