@@ -1,5 +1,4 @@
 import {Tabs, usePathname, useRouter} from "expo-router"
-import { useColorScheme } from "react-native"
 import { Colors } from "../../constants/Colors"
 import { Ionicons} from "@expo/vector-icons";
 import UserOnly from "../../components/auth/UserOnly";
@@ -16,9 +15,10 @@ import ProximityAlertModal from "../../components/modals/ProximityAlertModal";
 import LocationWakeup from "../../components/LocationWakeup";
 import {useNotifications} from "../../hooks/useNotifications";
 import { NotificationsProvider } from '../../contexts/NotificationsContext'
+import {useTheme} from "../../contexts/ThemeContext";
 
 export default function DashboardLayout() {
-    const colorScheme = useColorScheme()
+    const { colorScheme } = useTheme()
     const theme = Colors[colorScheme] ?? Colors.light
     const [typeModalOpen, setTypeModalOpen] = useState(false)
     const router = useRouter()

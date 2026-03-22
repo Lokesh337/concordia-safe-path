@@ -12,11 +12,12 @@
  *               Children are typically an <Ionicons> icon + <ThemedText> label.
  */
 
-import { Pressable, StyleSheet, useColorScheme } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import { Colors } from "../constants/Colors";
+import {useTheme} from "../contexts/ThemeContext";
 
 const ThemedMenuItem = ({ onPress, style, ...props }) => {
-    const colorScheme = useColorScheme()
+    const { colorScheme } = useTheme()
     const theme = Colors[colorScheme] ?? Colors.light
 
     return (

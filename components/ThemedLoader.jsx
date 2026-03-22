@@ -7,12 +7,13 @@
  * visibility in both light and dark modes.
  */
 
-import { ActivityIndicator, useColorScheme } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { Colors } from '../constants/Colors'
 import ThemedView from "./ThemedView";
+import {useTheme} from "../contexts/ThemeContext";
 
 const ThemedLoader = () => {
-    const colorScheme = useColorScheme();
+    const { colorScheme } = useTheme()
     const theme = Colors[colorScheme] ?? Colors.light
 
     return (

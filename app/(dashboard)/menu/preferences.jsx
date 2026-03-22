@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Alert, Switch, TouchableOpacity, Text, ScrollView, BackHandler } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useUser } from '../../../hooks/useUser';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { Colors } from '../../../constants/Colors';
 import Spacer from "../../../components/Spacer";
 import ThemedText from "../../../components/ThemedText";
@@ -35,6 +36,8 @@ const profileToValues = (profile) => ({
 
 const Preferences = () => {
     const { user, profile, updateProfile } = useUser();
+    const { colorScheme, setDarkMode: applyDarkMode } = useTheme();
+    const theme = Colors[colorScheme] ?? Colors.light;
     const router = useRouter();
     const [saving, setSaving] = useState(false);
     const isFirstTime = !profile?.preferences_completed;
@@ -85,8 +88,9 @@ const Preferences = () => {
         setNotifRoad(vals.notifRoad);
         setNotifConstruction(vals.notifConstruction);
         setNotifVandalism(vals.notifVandalism);
+        applyDarkMode(vals.darkMode);
         setPrefUpdated(false);
-    }, []);
+    }, [applyDarkMode]);
 
     // ── Back button: if prefUpdated → show popup, else just go back ──────────
     const handleBackPress = useCallback(() => {
@@ -149,6 +153,8 @@ const Preferences = () => {
                 notif_vandalism:       newValues.notifVandalism,
                 preferences_completed: true,
             });
+            // apply dark mode on save
+            applyDarkMode(newValues.darkMode);
             // prefSaved: temp values are now the new saved values
             savedValuesRef.current = newValues;
             setPrefUpdated(false);
@@ -175,7 +181,7 @@ const Preferences = () => {
     const TriToggle = ({ label, value, onValueChange }) => (
         <View style={styles.toggleRowContainer}>
             <ThemedText style={{ flex: 1, fontWeight: '500' }}>{label}</ThemedText>
-            <View style={styles.segmentedControl}>
+            <View style={[styles.segmentedControl, { backgroundColor: theme.background }]}>
                 {[
                     { key: 'normal', label: 'Normal', activeStyle: styles.segmentActiveNormal },
                     { key: 'silent', label: 'Silent', activeStyle: styles.segmentActiveSilent },
@@ -204,76 +210,80 @@ const Preferences = () => {
                     <ThemedText style={styles.onboardingText}>
                         Customize your app experience and notification levels.
                     </ThemedText>
-                ) : null}
+                ) : (
+                    <ThemedText style={[styles.subtitle, { color: theme.text }]}>
+                        Manage App settings and alerts
+                    </ThemedText>
+                )}
 
-                <View style={styles.section}>
-                    <ThemedText type="defaultSemiBold" style={{ marginBottom: 15, color: '#333' }}>App Settings</ThemedText>
+                <View style={[styles.section, { backgroundColor: theme.uiBackground }]}>
+                    <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: theme.title }]}>App Settings</ThemedText>
 
                     <View style={styles.settingRow}>
                         <View style={{ flex: 1 }}>
                             <ThemedText>Dark Mode</ThemedText>
                         </View>
                         <Switch
-                            trackColor={{ true: Colors.light?.tint }}
+                            trackColor={{ true: Colors.primary }}
                             onValueChange={(val) => { setDarkMode(val); markUpdated(); }}
                             value={darkMode}
                         />
                     </View>
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
                     <View style={styles.settingRow}>
                         <View style={{ flex: 1, paddingRight: 15 }}>
                             <ThemedText>Accessible Routing</ThemedText>
-                            <ThemedText style={styles.helperText}>Prioritize elevators and wheelchair-accessible paths in navigation previews.</ThemedText>
+                            <ThemedText style={[styles.helperText, { color: theme.text }]}>Prioritize elevators and wheelchair-accessible paths in navigation previews.</ThemedText>
                         </View>
                         <Switch
-                            trackColor={{ true: Colors.light?.tint }}
+                            trackColor={{ true: Colors.primary }}
                             onValueChange={(val) => { setAccessibilityRouting(val); markUpdated(); }}
                             value={accessibilityRouting}
                         />
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <ThemedText type="defaultSemiBold" style={{ color: '#333' }}>Distance-Based Alerts</ThemedText>
-                    <ThemedText style={styles.helperText}>Incidents outside these radii will be completely muted.</ThemedText>
+                <View style={[styles.section, { backgroundColor: theme.uiBackground }]}>
+                    <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: theme.title }]}>Distance-Based Alerts</ThemedText>
+                    <ThemedText style={[styles.helperText, { color: theme.text }]}>Incidents outside these radii will be completely muted.</ThemedText>
 
                     <View style={styles.distanceRow}>
                         <ThemedText style={styles.distanceLabel}>Normal if under:</ThemedText>
-                        <View style={styles.radiusInputContainer}>
+                        <View style={[styles.radiusInputContainer, { backgroundColor: theme.background, borderColor: Colors.divider }]}>
                             <ThemedTextInput
                                 style={styles.radiusInput}
                                 value={distanceNormal}
                                 onChangeText={(val) => { setDistanceNormal(val); markUpdated(); }}
                                 keyboardType="number-pad"
                             />
-                            <ThemedText style={styles.unitText}>m</ThemedText>
+                            <ThemedText style={[styles.unitText, { color: theme.text }]}>m</ThemedText>
                         </View>
                     </View>
                     <View style={styles.distanceRow}>
                         <ThemedText style={styles.distanceLabel}>Silent if under:</ThemedText>
-                        <View style={styles.radiusInputContainer}>
+                        <View style={[styles.radiusInputContainer, { backgroundColor: theme.background, borderColor: Colors.divider }]}>
                             <ThemedTextInput
                                 style={styles.radiusInput}
                                 value={distanceSilent}
                                 onChangeText={(val) => { setDistanceSilent(val); markUpdated(); }}
                                 keyboardType="number-pad"
                             />
-                            <ThemedText style={styles.unitText}>m</ThemedText>
+                            <ThemedText style={[styles.unitText, { color: theme.text }]}>m</ThemedText>
                         </View>
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <ThemedText type="bold" style={{ color: '#333' }}>Incident Type Overrides</ThemedText>
-                    <ThemedText style={styles.helperText}>These settings override the distance rules above.</ThemedText>
+                <View style={[styles.section, { backgroundColor: theme.uiBackground }]}>
+                    <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: theme.title }]}>Incident Type Sound</ThemedText>
+                    <ThemedText style={[styles.helperText, { color: theme.text }]}>These settings override the notification sound for incident type.</ThemedText>
 
                     <View style={{ marginTop: 10 }}>
                         <TriToggle label="Protest"      value={notifProtest}      onValueChange={setNotifProtest} />
-                        <View style={styles.divider} />
+                        <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
                         <TriToggle label="Road Blockage" value={notifRoad}         onValueChange={setNotifRoad} />
-                        <View style={styles.divider} />
+                        <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
                         <TriToggle label="Construction"  value={notifConstruction} onValueChange={setNotifConstruction} />
-                        <View style={styles.divider} />
+                        <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
                         <TriToggle label="Vandalism"     value={notifVandalism}    onValueChange={setNotifVandalism} />
                     </View>
                 </View>
@@ -286,7 +296,7 @@ const Preferences = () => {
 
                 {isFirstTime ? (
                     <TouchableOpacity onPress={handleSkip} style={styles.skip}>
-                        <ThemedText style={{ color: Colors.light?.tint || '#007AFF', textAlign: 'center' }}>Skip for now</ThemedText>
+                        <ThemedText style={{ color: Colors.primary, textAlign: 'center' }}>Skip for now</ThemedText>
                     </TouchableOpacity>
                 ) : null}
 
@@ -302,9 +312,9 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
     onboardingText: { marginBottom: 20, opacity: 0.7, fontSize: 14 },
+    subtitle: { fontSize: 13, opacity: 0.6, marginBottom: 12 },
     section: {
         marginBottom: 20,
-        backgroundColor: '#FFFFFF',
         padding: 18,
         borderRadius: 12,
         shadowColor: '#000',
@@ -313,6 +323,7 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         elevation: 2,
     },
+    sectionTitle: { marginBottom: 15 },
     helperText: { fontSize: 13, opacity: 0.7, marginTop: 4, marginBottom: 5 },
     settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 },
     divider: { height: 1, backgroundColor: 'rgba(150, 150, 150, 0.1)', marginVertical: 10 },
