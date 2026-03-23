@@ -7,6 +7,7 @@ import * as Location from "expo-location"
 import { useIncidents } from "../../hooks/useIncidents"
 import { useRoutes } from "../../hooks/useRoutes"
 import { useDangerDetection } from "../../hooks/useDangerDetection"
+import { useTheme } from '../../contexts/ThemeContext';
 
 import { CONCORDIA_BUILDINGS, SGW_CAMPUS_BOUNDARY, GUY_METRO } from '../../constants/Buildings'
 import { Colors } from '../../constants/Colors'
@@ -25,7 +26,7 @@ import {getDistance} from "../../lib/helpers";
 const BUILDING_MARKER = require('../../assets/building_marker.png')
 
 const Map = () => {
-
+  const { colorScheme } = useTheme();
   const [location, setLocation] = useState(null)
   const [error, setError] = useState(null)
   const [selectedIncidentId, setSelectedIncidentId] = useState(null)
@@ -215,6 +216,7 @@ const Map = () => {
         <MapView
             ref={mapRef}
             style={[styles.map]}
+            userInterfaceStyle={colorScheme === 'dark' ? 'dark' : 'light'}
             initialRegion={{
               latitude: GUY_METRO.latitude,
               longitude: GUY_METRO.longitude,
@@ -366,7 +368,6 @@ const Map = () => {
     </ThemedView>
   )
 }
-
 export default Map
 
 
@@ -492,4 +493,5 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginTop: 4,
   },
+
 })

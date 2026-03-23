@@ -4,12 +4,15 @@ import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplet
 import { Ionicons } from "@expo/vector-icons";
 import { SEARCH_LOCATIONS } from "../constants/SearchBarLocations";
 import { Colors } from "../constants/Colors";
+import { useTheme } from '../contexts/ThemeContext';
 
 const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY
 
 const SearchBar = ({ onSelect, onClear }) => {
   const ref = useRef(null)
   const [hasText, setHasText] = useState(false)
+  const { colorScheme } = useTheme();
+  const theme = Colors[colorScheme] ?? Colors.light;
 
   // convert buildings into google predefined format
   const campusPlaces = SEARCH_LOCATIONS.map((location) => ({
@@ -41,11 +44,12 @@ const SearchBar = ({ onSelect, onClear }) => {
               enablePoweredByContainer={false}
               keepResultsAfterBlur={false}
               textInputProps={{
-                onChangeText: (text) => setHasText(text.length > 0),
-                onBlur: () => {
-                  Keyboard.dismiss()
-                  setHasText(false)
-                },
+                  onChangeText: (text) => setHasText(text.length > 0),
+                  onBlur: () => {
+                      Keyboard.dismiss()
+                      setHasText(false)
+                  },
+                  placeholderTextColor: theme.iconColor,
               }}
 
         /* 🔹 When user selects GOOGLE result */
@@ -80,28 +84,31 @@ const SearchBar = ({ onSelect, onClear }) => {
         }}
 
               styles={{
-                container: { flex: 0, marginBottom: 0 },
-                textInput: {
-                  // marginHorizontal: 16,
-                  height: 50,
-                  paddingHorizontal: 15,
-                  paddingRight: 45,
-                  backgroundColor: "white",
-                },
-                listView: {
-                  position: 'absolute',
-                  top: 50,
-                  left: 0,
-                  right: 0,
-                  borderRadius: 12,
-                  backgroundColor: "white",
-                  elevation: 4,
-                  zIndex: 50,
-
-                },
-                row: {
-                  paddingHorizontal: 15,
-                },
+                  container: { flex: 0, marginBottom: 0 },
+                  textInput: {
+                      height: 50,
+                      paddingHorizontal: 15,
+                      paddingRight: 45,
+                      backgroundColor: theme.uiBackground,
+                      color: theme.text,
+                  },
+                  listView: {
+                      position: 'absolute',
+                      top: 50,
+                      left: 0,
+                      right: 0,
+                      borderRadius: 12,
+                      backgroundColor: theme.uiBackground,
+                      elevation: 4,
+                      zIndex: 50,
+                  },
+                  row: {
+                      paddingHorizontal: 15,
+                      backgroundColor: theme.uiBackground,
+                  },
+                  description: {
+                      color: theme.text,
+                  },
               }}
           />
           <TouchableOpacity

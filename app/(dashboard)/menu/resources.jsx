@@ -3,14 +3,18 @@ import { StyleSheet, View, Alert, TouchableOpacity, ScrollView, Linking, Text } 
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { useUser } from '../../../hooks/useUser';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { Colors } from '../../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedText from "../../../components/ThemedText";
 import ThemedView from "../../../components/ThemedView";
 import ThemedTextInput from "../../../components/ThemedTextInput";
-import EmergencyNotifiedModal from '../../../components/modals/EmergencyNotifiedModal'
+import EmergencyNotifiedModal from '../../../components/modals/EmergencyNotifiedModal';
 
 const Resources = () => {
     const { user } = useUser();
+    const { colorScheme } = useTheme();
+    const theme = Colors[colorScheme] ?? Colors.light;
     const router = useRouter();
     const [contacts, setContacts] = useState([]);
 
@@ -19,12 +23,13 @@ const Resources = () => {
     const [editingId, setEditingId] = useState(null);
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
-    const [notifiedModal, setNotifiedModal] = useState(false)
-
 
     // Accordion States for Campus Resources
     const [showMentalHealth, setShowMentalHealth] = useState(false);
     const [showSecurity, setShowSecurity] = useState(false);
+
+    // Emergency notified modal
+    const [notifiedModal, setNotifiedModal] = useState(false);
 
     useEffect(() => {
         if (user?.id) fetchContacts();
@@ -110,25 +115,25 @@ const Resources = () => {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
                 {/* --- CONTACTS CARD --- */}
-                <View style={styles.mainCard}>
+                <View style={[styles.mainCard, { backgroundColor: theme.uiBackground }]}>
                     <ThemedText type="defaultSemiBold" style={styles.cardHeader}>My Emergency Contacts</ThemedText>
                     {contacts.map((item) => (
-                        <View key={item.id} style={styles.contactItem}>
+                        <View key={item.id} style={[styles.contactItem, { borderColor: Colors.divider }]}>
                             <View style={styles.contactLeft}>
-                                <View style={styles.avatar}>
-                                    <ThemedText style={styles.avatarText}>
+                                <View style={[styles.avatar, { borderColor: Colors.divider }]}>
+                                    <ThemedText style={[styles.avatarText, { color: theme.text }]}>
                                         {item.name ? item.name.charAt(0).toUpperCase() : '?'}
                                     </ThemedText>
                                 </View>
                                 <View>
                                     <ThemedText style={styles.contactName}>{item.name}</ThemedText>
-                                    <ThemedText style={styles.contactPhone}>{item.phone_number}</ThemedText>
+                                    <ThemedText style={[styles.contactPhone, { color: theme.text }]}>{item.phone_number}</ThemedText>
                                 </View>
                             </View>
 
                             <View style={styles.actionRow}>
                                 <TouchableOpacity onPress={() => editContact(item)} style={styles.iconBtn}>
-                                    <Ionicons name="pencil" size={20} color="#666" />
+                                    <Ionicons name="pencil" size={20} color={theme.text} />
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => deleteContact(item.id)} style={styles.iconBtn}>
                                     <Ionicons name="trash" size={20} color="#FF3B30" />
@@ -137,15 +142,15 @@ const Resources = () => {
                         </View>
                     ))}
                     {isAdding ? (
-                        <View style={styles.formContainer}>
+                        <View style={[styles.formContainer, { borderColor: Colors.divider }]}>
                             <ThemedTextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: theme.background, borderColor: Colors.divider }]}
                                 placeholder="Contact Name"
                                 value={name}
                                 onChangeText={setName}
                             />
                             <ThemedTextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: theme.background, borderColor: Colors.divider }]}
                                 placeholder="Phone Number"
                                 value={phone}
                                 onChangeText={setPhone}
@@ -168,13 +173,13 @@ const Resources = () => {
                 </View>
 
                 {/* --- MENTAL HEALTH ACCORDION --- */}
-                <View style={styles.resourceCard}>
+                <View style={[styles.resourceCard, { backgroundColor: theme.uiBackground }]}>
                     <TouchableOpacity
                         style={styles.accordionHeader}
                         onPress={() => setShowMentalHealth(!showMentalHealth)}
                     >
                         <ThemedText type="defaultSemiBold">Mental Health Crisis Support</ThemedText>
-                        <Ionicons name={showMentalHealth ? "chevron-down" : "chevron-forward"} size={20} color="#000" />
+                        <Ionicons name={showMentalHealth ? "chevron-down" : "chevron-forward"} size={20} color={theme.text} />
                     </TouchableOpacity>
                     {showMentalHealth && (
                         <View style={styles.accordionContent}>
@@ -193,13 +198,13 @@ const Resources = () => {
                 </View>
 
                 {/* --- CAMPUS SECURITY ACCORDION --- */}
-                <View style={styles.resourceCard}>
+                <View style={[styles.resourceCard, { backgroundColor: theme.uiBackground }]}>
                     <TouchableOpacity
                         style={styles.accordionHeader}
                         onPress={() => setShowSecurity(!showSecurity)}
                     >
                         <ThemedText type="defaultSemiBold">Contact Campus Security</ThemedText>
-                        <Ionicons name={showSecurity ? "chevron-down" : "chevron-forward"} size={20} color="#000" />
+                        <Ionicons name={showSecurity ? "chevron-down" : "chevron-forward"} size={20} color={theme.text} />
                     </TouchableOpacity>
                     {showSecurity && (
                         <View style={styles.accordionContent}>
@@ -222,10 +227,10 @@ const Resources = () => {
                     style={styles.blueButton}
                     onPress={() => {
                         if (contacts.length === 0) {
-                            Alert.alert('No Contacts', 'Please add an emergency contact first.')
-                            return
+                            Alert.alert('No Contacts', 'Please add an emergency contact first.');
+                            return;
                         }
-                        setNotifiedModal(true)
+                        setNotifiedModal(true);
                     }}
                 >
                     <ThemedText style={styles.blueButtonText}>Notify Emergency Contact</ThemedText>
@@ -241,7 +246,7 @@ const Resources = () => {
                     <TouchableOpacity style={styles.redButton} onPress={() => openDialer('911')}>
                         <ThemedText style={styles.redButtonText}>Call 911</ThemedText>
                     </TouchableOpacity>
-                    <ThemedText style={styles.emergencySubtext}>Emergency Services will be called.</ThemedText>
+                    <ThemedText style={[styles.emergencySubtext, { color: theme.text }]}>Emergency Services will be called.</ThemedText>
                 </View>
 
                 <View style={{ height: 40 }} />
@@ -255,13 +260,11 @@ export default Resources;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F5F5',
     },
     scrollContent: {
         padding: 20,
     },
     mainCard: {
-        backgroundColor: '#FFFFFF',
         borderRadius: 12,
         padding: 15,
         marginBottom: 20,
@@ -280,7 +283,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderWidth: 1,
-        borderColor: '#E0E0E0',
         borderRadius: 10,
         padding: 10,
         marginBottom: 10,
@@ -294,7 +296,6 @@ const styles = StyleSheet.create({
         height: 44,
         borderRadius: 22,
         borderWidth: 1,
-        borderColor: '#CCC',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -302,14 +303,12 @@ const styles = StyleSheet.create({
     avatarText: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
     },
     contactName: {
         fontWeight: '500',
         fontSize: 15,
     },
     contactPhone: {
-        color: '#666',
         marginTop: 2,
     },
     actionRow: {
@@ -323,15 +322,12 @@ const styles = StyleSheet.create({
         marginTop: 10,
         paddingTop: 10,
         borderTopWidth: 1,
-        borderColor: '#EEE',
     },
     input: {
         borderWidth: 1,
-        borderColor: '#E0E0E0',
         borderRadius: 8,
         padding: 12,
         marginBottom: 10,
-        backgroundColor: '#FAFAFA',
     },
     formButtons: {
         flexDirection: 'row',
@@ -345,7 +341,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     blueButton: {
-        backgroundColor: '#6FA3DB',
+        backgroundColor: Colors.primary,
         borderRadius: 8,
         padding: 14,
         alignItems: 'center',
@@ -357,7 +353,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     resourceCard: {
-        backgroundColor: '#FFFFFF',
         borderRadius: 12,
         marginBottom: 15,
         shadowColor: '#000',
@@ -429,7 +424,6 @@ const styles = StyleSheet.create({
     },
     emergencySubtext: {
         fontSize: 11,
-        color: '#666',
         marginTop: 8,
     },
 });

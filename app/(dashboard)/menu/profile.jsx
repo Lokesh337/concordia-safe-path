@@ -4,7 +4,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    useColorScheme,
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,11 +13,12 @@ import { Colors } from '../../../constants/Colors';
 import ThemedView from '../../../components/ThemedView';
 import ThemedText from '../../../components/ThemedText';
 import ThemedButton from '../../../components/ThemedButton';
+import {useTheme} from "../../../contexts/ThemeContext";
 
 const Profile = () => {
     const { user, profile, logout } = useUser();
     const router = useRouter();
-    const colorScheme = useColorScheme();
+    const { colorScheme } = useTheme()
     const theme = Colors[colorScheme] ?? Colors.light;
 
     const handleLogout = () => {
