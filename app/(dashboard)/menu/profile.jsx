@@ -90,6 +90,12 @@ const Profile = () => {
                     />
                     <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
                     <NavRow
+                        label="FAQs"
+                        onPress={() => router.push('/menu/faq')}
+                        theme={theme}
+                    />
+                    <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
+                    <NavRow
                         label="Emergency Resources"
                         onPress={() => router.push('/menu/resources')}
                         theme={theme}
