@@ -104,6 +104,14 @@ export function useIncidentDetail(id) {
         setComments(data ?? [])
     }
 
+    async function handleDelete() {
+        try {
+            await supabase.from('incidents').delete().eq('id', id)
+        } catch (e) {
+            __DEV__ && console.log('[useIncidentDetail] delete error:', e.message)
+        }
+    }
+
     // ─── handleVote ───────────────────────────────────────────
     // reddit-style: tapping same button undoes the vote,
     // switching sides removes the old vote and adds the new one in one DB write
@@ -289,5 +297,6 @@ export function useIncidentDetail(id) {
         handleVerify,
         handleResolve,
         handleComment,
+        handleDelete,
     }
 }

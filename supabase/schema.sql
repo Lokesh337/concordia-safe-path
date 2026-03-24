@@ -175,6 +175,19 @@ drop constraint if exists comments_user_id_fkey,
     add constraint comments_user_id_fkey
         foreign key (user_id) references profiles(id) on delete cascade;
 
+do $$
+begin
+    if not exists (
+        select 1 from pg_publication_tables
+        where pubname = 'supabase_realtime'
+        and tablename = 'comments'
+    ) then
+        alter publication supabase_realtime add table comments;
+end if;
+end $$;
+
+alter table comments replica identity full;
+
 -- ============================================================
 -- TABLE: incident_votes
 -- tracks per-user vote on an incident so votes persist across sessions
