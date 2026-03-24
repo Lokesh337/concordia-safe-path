@@ -222,6 +222,7 @@ export const NotificationsProvider = ({ children }) => {
             markAsRead,
             markAllAsRead,
             fetchNotifications,
+            locationRef
         }}>
             {children}
 

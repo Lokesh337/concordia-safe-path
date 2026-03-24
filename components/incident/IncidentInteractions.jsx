@@ -14,8 +14,10 @@ const IncidentInteractions = ({
                                   onWitnessed,
                                   onVerify,
                                   onResolve,
+                                  onDelete,
                               }) => (
     <View style={styles.interactionRow}>
+
 
         {/* UPVOTE — highlights when active, locked + disabled for the reporter */}
         <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('up')} disabled={voteLoading || incident.user_id === userId}>
@@ -35,18 +37,6 @@ const IncidentInteractions = ({
             <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>
         </TouchableOpacity>
 
-        {/* WITNESSED — commented out pending team decision on witnessed vs votes
-        <TouchableOpacity
-            style={styles.actionWrapper}
-            onPress={onWitnessed}
-            disabled={voteLoading || userVote === 'witnessed'}
-        >
-            <View style={styles.actionItem}>
-                <Ionicons name="eye" size={22} color={userVote === 'witnessed' ? '#F59E0B' : "#6B7280"} />
-                <ThemedText>{incident.witnessed ?? 0}</ThemedText>
-            </View>
-            <ThemedText style={styles.actionLabel}>Witnessed It</ThemedText>
-        </TouchableOpacity> */}
 
         {/* STAFF ONLY — verify and resolve, hidden for students */}
         {isStaff && (

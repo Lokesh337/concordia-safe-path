@@ -5,7 +5,7 @@ import { Colors } from "../../constants/Colors"
 import { IncidentIconMap } from "../../constants/Icons"
 
 // icon box color comes from Colors.type, falls back to grey for unknown types
-const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow }) => (
+const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow, userId, onDelete }) => (
     <View style={styles.header}>
 
         {/* type icon */}
@@ -27,6 +27,16 @@ const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow }) => (
 
         {/* follow button — absolutely positioned to top right */}
         <View style={styles.followButtonAbsolute}>
+            {incident.user_id === userId && (
+                <TouchableOpacity
+                    onPress={onDelete}
+                    style={{ alignItems: "center" }}
+                >
+                    <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+                    <ThemedText style={[styles.followText, { color: '#FF3B30' }]}>Delete</ThemedText>
+                </TouchableOpacity>
+            )}
+
             <TouchableOpacity onPress={onFollow} disabled={followLoading} style={{ alignItems: "center" }}>
                 <Ionicons name="star" size={24} color={isFollowing ? "#FFD700" : "#6B7280"} />
                 <ThemedText style={styles.followText}>
@@ -78,8 +88,9 @@ const styles = StyleSheet.create({
         position: "absolute",
         right: 10,
         top: 5,
-        width: 60,
-        alignItems: "center",
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 16,
     },
     followText: {
         fontSize: 12,

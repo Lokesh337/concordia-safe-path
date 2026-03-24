@@ -124,6 +124,7 @@ const Map = () => {
     if (!alertIncidentId || !mapRef.current) return
     const incident = incidents.find(i => i.id === alertIncidentId)
     if (!incident) return
+    setSelectedIncidentId(alertIncidentId)
     mapRef.current.animateToRegion({
       latitude: incident.latitude,
       longitude: incident.longitude,

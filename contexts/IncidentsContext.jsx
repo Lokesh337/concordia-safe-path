@@ -132,6 +132,12 @@ export function IncidentsProvider({ children }) {
                             prev.map((b) => b.id === payload.new.id ? payload.new : b)
                         )
                     }
+
+                    if (payload.eventType === 'DELETE') {
+                        setIncidents((prev) =>
+                            prev.filter((b) => b.id !== payload.old.id)
+                        )
+                    }
                 }
             )
             .subscribe()
