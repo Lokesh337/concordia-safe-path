@@ -68,6 +68,15 @@ const Profile = () => {
                         theme={theme}
                         onEdit={() => Alert.alert('Not implemented', 'Editing email is not available yet.')}
                     />
+
+                    <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
+                    <InfoRow
+                        label="Password"
+                        value="••••••••"
+                        theme={theme}
+                        onEdit={() => Alert.alert('Not implemented', 'Changing password is not available yet.')}
+                    />
+
                 </View>
 
                 {/* ── settings ───────────────────────────────────── */}

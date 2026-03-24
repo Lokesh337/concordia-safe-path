@@ -130,6 +130,16 @@ const Preferences = () => {
 
     // ── Save: commit temp values into savedValuesRef ──────────────────────────
     const handleSave = async () => {
+        const normalVal = parseInt(distanceNormal) || 500;
+        const silentVal = parseInt(distanceSilent) || 1000;
+
+        if (silentVal <= normalVal) {
+            Alert.alert(
+                'Invalid Distance Settings',
+                '"Silent if under" must be greater than "Normal if under".'
+            );
+            return;
+        }
         setSaving(true);
         const newValues = {
             darkMode,

@@ -157,6 +157,7 @@ const Register = () => {
                             secureTextEntry
                             icon="lock-closed-outline"
                         />
+                        <Text style={styles.hint}>Password must be at least 6 characters</Text>
 
                         <ThemedTextInput
                             style={styles.input}
@@ -181,10 +182,13 @@ const Register = () => {
                         {/* link back to login */}
                         <TouchableOpacity onPress={() => router.replace('/login')}>
                             <ThemedText style={{ textAlign: 'center' }}>
-                                Already have an account?{' '}
+                                Already have a ConSafe Path account?{' '}
                                 <ThemedText style={{ color: Colors.primary }}>Log in</ThemedText>
                             </ThemedText>
                         </TouchableOpacity>
+                        <ThemedText style={{ textAlign: 'center', fontSize: 12, opacity: 0.5, marginTop: 8 }}>
+                            This app uses its own account system,{'\n'}separate from your university credentials.
+                        </ThemedText>
 
                     </ThemedView>
                 </View>
@@ -225,6 +229,13 @@ const styles = StyleSheet.create({
         borderRadius: 30, // pill shape
     },
     // red-tinted error banner shown below inputs on failure
+    hint: {
+        fontSize: 12,
+        color: '#140000',
+        textAlign: 'center',
+        marginTop: -8,
+        marginBottom: 8,
+    },    
     error: {
         color: Colors.warning,
         padding: 10,
