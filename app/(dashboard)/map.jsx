@@ -260,19 +260,31 @@ const Map = () => {
                   {/* ICON CONTAINER */}
                   <View
                     style={{
-                      backgroundColor: Colors.severity[incident.severity],
-                      padding: 8,
-                      borderRadius: 30,
-                      borderWidth: selectedIncidentId === incident.id ? 3 : 2,
-                      borderColor: selectedIncidentId === incident.id ? '#fcfcf9' : '#0b0b0b',
-                      elevation: 8,
-                  }}
-                  >
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: Colors.severity[incident.severity],
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: selectedIncidentId === incident.id ? 3 : 2,
+                    borderColor: selectedIncidentId === incident.id ? '#fcfcf9' : '#0b0b0b',
+                    elevation: 8,
+                    }}
+                    >
                     {(() => {
                       const IconComponent =
-                      IncidentIconMap[incident.type] || IncidentIconMap['protest'] // fallback
+                        IncidentIconMap[incident.type] || IncidentIconMap['protest']
 
-                      return <IconComponent size={18} color="#0b0a0a" />
+                      const sizeMap = {
+                        protest: 22,
+                        construction: 22,
+                        blockade: 20,
+                        vandalism: 24, // bigger to fix visual density
+                      }
+
+                      const iconSize = sizeMap[incident.type] || 20
+
+                      return <IconComponent size={iconSize} color="#0b0a0a" />
                     })()}
                   </View>
 
