@@ -108,6 +108,11 @@ const ThemedDrawer = ({ visible, onClose }) => {
                                     <ThemedText style={{ color: theme.text, fontSize: 16 }}>Emergency Resources</ThemedText>
                                 </ThemedMenuItem>
 
+                                <ThemedMenuItem onPress={() => navigate('menu/faq')}>
+                                    <Ionicons name="help-circle-outline" size={22} color={theme.text} />
+                                    <ThemedText style={{ color: theme.text, fontSize: 16 }}>FAQs</ThemedText>
+                                </ThemedMenuItem>
+
                                 {/* Logout styled in warning color to signal destructive action */}
                                 <ThemedMenuItem onPress={handleLogout}>
                                     <Ionicons name="log-out-outline" size={22} color={Colors.warning} />

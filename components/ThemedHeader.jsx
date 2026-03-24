@@ -38,6 +38,7 @@ const PAGE_TITLES = {
     '/menu/preferences': 'Preferences',
     '/menu/resources': 'Emergency Resources',
     '/menu/profile': 'Profile',
+    '/menu/faq': 'FAQs',
     '/routes': 'Safe Routes',
 }
 

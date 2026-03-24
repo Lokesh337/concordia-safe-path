@@ -125,6 +125,10 @@ export default function DashboardLayout() {
                         name="menu/profile"
                         options={{ href: null }}
                     />
+                    <Tabs.Screen
+                        name="menu/faq"
+                        options={{ href: null }}
+                    />
 
                     <Tabs.Screen
                         name="notifications"
