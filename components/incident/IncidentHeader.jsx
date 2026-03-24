@@ -27,15 +27,15 @@ const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow, userId
 
         {/* follow button — absolutely positioned to top right */}
         <View style={styles.followButtonAbsolute}>
-            {/*{incident.user_id === userId && (*/}
-            {/*    <TouchableOpacity*/}
-            {/*        onPress={onDelete}*/}
-            {/*        style={{ alignItems: "center" }}*/}
-            {/*    >*/}
-            {/*        <Ionicons name="trash-outline" size={22} color="#FF3B30" />*/}
-            {/*        <ThemedText style={[styles.followText, { color: '#FF3B30' }]}>Delete</ThemedText>*/}
-            {/*    </TouchableOpacity>*/}
-            {/*)}*/}
+            {incident.user_id === userId && (
+                <TouchableOpacity
+                    onPress={onDelete}
+                    style={{ alignItems: "center" }}
+                >
+                    <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+                    <ThemedText style={[styles.followText, { color: '#FF3B30' }]}>Delete</ThemedText>
+                </TouchableOpacity>
+            )}
 
             <TouchableOpacity onPress={onFollow} disabled={followLoading} style={{ alignItems: "center" }}>
                 <Ionicons name="star" size={24} color={isFollowing ? "#FFD700" : "#6B7280"} />

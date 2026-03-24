@@ -18,32 +18,23 @@ const IncidentInteractions = ({
                               }) => (
     <View style={styles.interactionRow}>
 
-        {/* UPVOTE */}
-        <TouchableOpacity
-            style={[styles.actionWrapper, incident.user_id === userId && { flex: 0.65 }]}
-            onPress={() => onVote('up')}
-            disabled={voteLoading || incident.user_id === userId}
-            accessibilityLabel={`Upvote, ${incident.upvotes ?? 0} upvotes`}
-            accessibilityRole="button"
-        >
+
+        {/* UPVOTE — highlights when active, locked + disabled for the reporter */}
+        <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('up')} disabled={voteLoading || incident.user_id === userId}>
             <View style={styles.actionItem}>
                 <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />
                 <ThemedText>{incident.upvotes ?? 0}</ThemedText>
             </View>
+            <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>
         </TouchableOpacity>
 
-        {/* DOWNVOTE */}
-        <TouchableOpacity
-            style={[styles.actionWrapper, incident.user_id === userId && { flex: 0.65 }]}
-            onPress={() => onVote('down')}
-            disabled={voteLoading || incident.user_id === userId}
-            accessibilityLabel={`Downvote, ${incident.downvotes ?? 0} downvotes`}
-            accessibilityRole="button"
-        >
+        {/* DOWNVOTE — switching from upvote automatically removes the upvote */}
+        <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('down')} disabled={voteLoading || incident.user_id === userId}>
             <View style={styles.actionItem}>
                 <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />
                 <ThemedText>{incident.downvotes ?? 0}</ThemedText>
             </View>
+            <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>
         </TouchableOpacity>
 
 
@@ -84,15 +75,6 @@ const IncidentInteractions = ({
                 </TouchableOpacity>
 
             </View>
-        )}
-        {/* DELETE — only visible to the reporter */}
-        {incident.user_id === userId && (
-            <TouchableOpacity style={styles.actionWrapper} onPress={onDelete}>
-                <View style={styles.actionItem}>
-                    <Ionicons name="trash-outline" size={22} color="#FF3B30" />
-                </View>
-                <ThemedText style={[styles.actionLabel, { color: '#FF3B30' }]}>Delete</ThemedText>
-            </TouchableOpacity>
         )}
 
     </View>
