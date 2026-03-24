@@ -109,6 +109,10 @@ const Login = () => {
                         icon="lock-closed-outline"
                     />
 
+                    <TouchableOpacity style={{ alignSelf: 'flex-end', marginRight: '35%', marginBottom: 16 }}>
+                        <ThemedText style={{ color: Colors.primary, fontSize: 13}}>Forgot Password?</ThemedText>    
+                    </TouchableOpacity>
+
                     <Spacer />
 
                     {/* only rendered when theres an active error */}
@@ -123,8 +127,13 @@ const Login = () => {
                     {/* opens role picker modal before navigating to register */}
                     <TouchableOpacity onPress={() => setRoleModalVisible(true)}>
                         <ThemedText style={{ textAlign: 'center' }}>
-                            Don't have an account? <ThemedText style={{ color: Colors.primary }}>Sign up</ThemedText>
+                            Don't have a ConSafe Path account?{' '}
+                            <ThemedText style={{ color: Colors.primary }}>Sign up</ThemedText>
                         </ThemedText>
+                        <ThemedText style={{ textAlign: 'center', fontSize: 12, opacity: 0.5, marginTop: 8 }}>
+                            This app uses its own account system,{'\n'}separate from your university credentials.
+                        </ThemedText>
+
                     </TouchableOpacity>
 
                     <RolePickerModal
