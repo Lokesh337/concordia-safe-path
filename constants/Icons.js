@@ -16,7 +16,7 @@ export const Icons = {
 export const INCIDENT_TYPES = [
     { value: 'protest',      label: 'Protest' },
     { value: 'construction', label: 'Construction' },
-    { value: 'blockade',     label: 'Road Blockage' },
+    { value: 'blockade',     label: 'Blockade' },
     { value: 'vandalism',    label: 'Vandalism' },
     // { value: 'emergency',    label: 'Emergency' },
 ]
