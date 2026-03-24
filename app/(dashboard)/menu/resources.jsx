@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { StyleSheet, View, Alert, TouchableOpacity, ScrollView, Linking, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, View, Alert, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../../lib/supabase';
 import { useUser } from '../../../hooks/useUser';
+import { useNetwork } from '../../../hooks/useNetwork';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Colors } from '../../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,41 +11,34 @@ import ThemedText from "../../../components/ThemedText";
 import ThemedView from "../../../components/ThemedView";
 import ThemedTextInput from "../../../components/ThemedTextInput";
 import EmergencyNotifiedModal from '../../../components/modals/EmergencyNotifiedModal';
+import OfflineActionModal from '../../../components/offline/OfflineActionModal';
+
+const cacheKey = (userId) => `emergency_contacts_${userId}`
 
 const Resources = () => {
-    const { user } = useUser();
+    // contacts come from UserContext — prefetched on login and cached for offline
+    const { user, emergencyContacts: contacts, setEmergencyContacts: setContacts } = useUser();
+    const { isOnline, checkOnline } = useNetwork();
     const { colorScheme } = useTheme();
     const theme = Colors[colorScheme] ?? Colors.light;
-    const router = useRouter();
-    const [contacts, setContacts] = useState([]);
 
-    // Form States
+    const [offlineModal, setOfflineModal] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
-
-    // Accordion States for Campus Resources
     const [showMentalHealth, setShowMentalHealth] = useState(false);
     const [showSecurity, setShowSecurity] = useState(false);
-
-    // Emergency notified modal
     const [notifiedModal, setNotifiedModal] = useState(false);
 
-    useEffect(() => {
-        if (user?.id) fetchContacts();
-    }, [user]);
-
-    async function fetchContacts() {
-        const { data, error } = await supabase
-            .from('emergency_contacts')
-            .select('*')
-            .order('created_at', { ascending: false });
-        if (error) Alert.alert('Error', error.message);
-        else setContacts(data || []);
+    // write-through helper — updates both state and cache after any mutation
+    async function persistContacts(updated) {
+        setContacts(updated)
+        try { await AsyncStorage.setItem(cacheKey(user.id), JSON.stringify(updated)) } catch (_) {}
     }
 
     async function saveContact() {
+        if (!await checkOnline()) { setOfflineModal(true); return; }
         if (!name || !phone) {
             Alert.alert('Missing Info', 'Please provide a name and phone number.');
             return;
@@ -57,7 +51,7 @@ const Resources = () => {
                 .select();
             if (error) Alert.alert('Error updating', error.message);
             else {
-                setContacts(contacts.map(c => c.id === editingId ? data[0] : c));
+                await persistContacts(contacts.map(c => c.id === editingId ? data[0] : c));
                 resetForm();
             }
         } else {
@@ -67,7 +61,7 @@ const Resources = () => {
                 .select();
             if (error) Alert.alert('Error saving', error.message);
             else {
-                setContacts([data[0], ...contacts]);
+                await persistContacts([data[0], ...contacts]);
                 resetForm();
             }
         }
@@ -81,6 +75,7 @@ const Resources = () => {
     }
 
     async function deleteContact(id) {
+        if (!await checkOnline()) { setOfflineModal(true); return; }
         Alert.alert(
             "Delete Contact",
             "Are you sure you want to remove this emergency contact?",
@@ -92,7 +87,7 @@ const Resources = () => {
                     onPress: async () => {
                         const { error } = await supabase.from('emergency_contacts').delete().eq('id', id);
                         if (error) Alert.alert('Error deleting', error.message);
-                        else setContacts(contacts.filter(contact => contact.id !== id));
+                        else await persistContacts(contacts.filter(c => c.id !== id));
                     }
                 }
             ]
@@ -100,6 +95,7 @@ const Resources = () => {
     }
 
     function editContact(item) {
+        if (!isOnline) { setOfflineModal(true); return; }
         setName(item.name);
         setPhone(item.phone_number);
         setEditingId(item.id);
@@ -111,7 +107,6 @@ const Resources = () => {
 
     return (
         <ThemedView style={styles.container}>
-
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
                 {/* --- CONTACTS CARD --- */}
@@ -130,7 +125,6 @@ const Resources = () => {
                                     <ThemedText style={[styles.contactPhone, { color: theme.text }]}>{item.phone_number}</ThemedText>
                                 </View>
                             </View>
-
                             <View style={styles.actionRow}>
                                 <TouchableOpacity onPress={() => editContact(item)} style={styles.iconBtn}>
                                     <Ionicons name="pencil" size={20} color={theme.text} />
@@ -166,7 +160,13 @@ const Resources = () => {
                             </View>
                         </View>
                     ) : (
-                        <TouchableOpacity style={styles.blueButton} onPress={() => setIsAdding(true)}>
+                        <TouchableOpacity
+                            style={[styles.blueButton, !isOnline && styles.buttonDisabled]}
+                            onPress={() => {
+                                if (!isOnline) { setOfflineModal(true); return; }
+                                setIsAdding(true);
+                            }}
+                        >
                             <ThemedText style={styles.blueButtonText}>Add Contact to notify</ThemedText>
                         </TouchableOpacity>
                     )}
@@ -174,10 +174,7 @@ const Resources = () => {
 
                 {/* --- MENTAL HEALTH ACCORDION --- */}
                 <View style={[styles.resourceCard, { backgroundColor: theme.uiBackground }]}>
-                    <TouchableOpacity
-                        style={styles.accordionHeader}
-                        onPress={() => setShowMentalHealth(!showMentalHealth)}
-                    >
+                    <TouchableOpacity style={styles.accordionHeader} onPress={() => setShowMentalHealth(!showMentalHealth)}>
                         <ThemedText type="defaultSemiBold">Mental Health Crisis Support</ThemedText>
                         <Ionicons name={showMentalHealth ? "chevron-down" : "chevron-forward"} size={20} color={theme.text} />
                     </TouchableOpacity>
@@ -199,10 +196,7 @@ const Resources = () => {
 
                 {/* --- CAMPUS SECURITY ACCORDION --- */}
                 <View style={[styles.resourceCard, { backgroundColor: theme.uiBackground }]}>
-                    <TouchableOpacity
-                        style={styles.accordionHeader}
-                        onPress={() => setShowSecurity(!showSecurity)}
-                    >
+                    <TouchableOpacity style={styles.accordionHeader} onPress={() => setShowSecurity(!showSecurity)}>
                         <ThemedText type="defaultSemiBold">Contact Campus Security</ThemedText>
                         <Ionicons name={showSecurity ? "chevron-down" : "chevron-forward"} size={20} color={theme.text} />
                     </TouchableOpacity>
@@ -222,7 +216,7 @@ const Resources = () => {
                     )}
                 </View>
 
-                {/* --- NOTIFY EMERGENCY CONTACT BUTTON --- */}
+                {/* calling always works offline — no guard needed */}
                 <TouchableOpacity
                     style={styles.blueButton}
                     onPress={() => {
@@ -236,12 +230,8 @@ const Resources = () => {
                     <ThemedText style={styles.blueButtonText}>Notify Emergency Contact</ThemedText>
                 </TouchableOpacity>
 
-                <EmergencyNotifiedModal
-                    visible={notifiedModal}
-                    onClose={() => setNotifiedModal(false)}
-                />
+                <EmergencyNotifiedModal visible={notifiedModal} onClose={() => setNotifiedModal(false)} />
 
-                {/* --- 911 EMERGENCY BUTTON --- */}
                 <View style={styles.emergencyContainer}>
                     <TouchableOpacity style={styles.redButton} onPress={() => openDialer('911')}>
                         <ThemedText style={styles.redButtonText}>Call 911</ThemedText>
@@ -251,6 +241,8 @@ const Resources = () => {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            <OfflineActionModal visible={offlineModal} onClose={() => setOfflineModal(false)} />
         </ThemedView>
     );
 }

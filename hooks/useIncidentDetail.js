@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useIncidents } from './useIncidents'
 import { useUser } from './useUser'
+import { useNetwork } from './useNetwork'
 
 export function useIncidentDetail(id) {
     const { fetchIncidentById } = useIncidents()
     const { user, profile } = useUser()
+    const { isOnline, checkOnline } = useNetwork()
 
     const [incident, setIncident] = useState(null)
     const [isFollowing, setIsFollowing] = useState(false)
@@ -14,14 +16,18 @@ export function useIncidentDetail(id) {
     const [userVote, setUserVote] = useState(null) // 'up' | 'down' | 'witnessed' | null
     const [voteLoading, setVoteLoading] = useState(false)
 
-    const [actionLoading, setActionLoading] = useState(false) // guards verify/resolve
+    const [actionLoading, setActionLoading] = useState(false)
 
     const [comments, setComments] = useState([])
     const [commentText, setCommentText] = useState('')
     const [commentLoading, setCommentLoading] = useState(false)
 
+    const [offlineModal, setOfflineModal] = useState(false)
+
+    // track previous online state to detect the offline→online transition
+    const wasOnlineRef = useRef(isOnline)
+
     // ─── load incident ────────────────────────────────────────
-    // seeds isFollowing from followed_by array on first load
     useEffect(() => {
         async function loadIncident() {
             if (!id) return
@@ -29,18 +35,34 @@ export function useIncidentDetail(id) {
             if (!data) return
             setIncident(data)
             setIsFollowing(data.followed_by?.includes(user?.id) ?? false)
-            // reporter's upvote is locked on
             if (data.user_id === user?.id) setUserVote('up')
         }
         loadIncident()
     }, [id])
 
+    // ─── refetch on reconnect ─────────────────────────────────
+    // when the device comes back online after being offline,
+    // refetch incident + comments to pick up any missed changes
+    useEffect(() => {
+        const wasOffline = wasOnlineRef.current === false
+        const nowOnline = isOnline === true
+        wasOnlineRef.current = isOnline
+
+        if (wasOffline && nowOnline && id) {
+            __DEV__ && console.log('[useIncidentDetail] reconnected — refreshing data')
+            fetchIncidentById(id).then(data => {
+                if (!data) return
+                setIncident(data)
+                setIsFollowing(data.followed_by?.includes(user?.id) ?? false)
+            })
+            fetchComments()
+        }
+    }, [isOnline])
+
     // ─── load user's existing vote ────────────────────────────
-    // re-runs when user changes (e.g. login/logout) to avoid stale vote state
     useEffect(() => {
         async function loadUserVote() {
             if (!user?.id) return
-            // skip fetch if user is the reporter — vote is already locked to 'up'
             if (incident?.user_id === user.id) return
             const { data } = await supabase
                 .from('incident_votes')
@@ -54,8 +76,9 @@ export function useIncidentDetail(id) {
     }, [id, user?.id])
 
     // ─── realtime: incident row ───────────────────────────────
-    // listens for UPDATE events so votes, verify, resolve reflect immediately
+    // isOnline in deps so the channel resubscribes when connectivity returns
     useEffect(() => {
+        if (!isOnline) return
         const channel = supabase
             .channel(`incident-${id}`)
             .on(
@@ -68,7 +91,7 @@ export function useIncidentDetail(id) {
             )
             .subscribe()
         return () => supabase.removeChannel(channel)
-    }, [id])
+    }, [id, isOnline])
 
     // ─── load + realtime: comments ────────────────────────────
     useEffect(() => {
@@ -76,8 +99,9 @@ export function useIncidentDetail(id) {
         fetchComments()
     }, [id])
 
-    // re-fetch on INSERT so username join is included (payload alone won't have it)
+    // isOnline in deps so the channel resubscribes when connectivity returns
     useEffect(() => {
+        if (!isOnline) return
         const channel = supabase
             .channel(`comments-${id}`)
             .on(
@@ -87,10 +111,9 @@ export function useIncidentDetail(id) {
             )
             .subscribe()
         return () => supabase.removeChannel(channel)
-    }, [id])
+    }, [id, isOnline])
 
     // ─── fetchComments ────────────────────────────────────────
-    // joins profiles via FK so username displays correctly
     async function fetchComments() {
         const { data, error } = await supabase
             .from('comments')
@@ -105,6 +128,7 @@ export function useIncidentDetail(id) {
     }
 
     async function handleDelete() {
+        if (!await checkOnline()) { setOfflineModal(true); return }
         try {
             await supabase.from('incidents').delete().eq('id', id)
         } catch (e) {
@@ -112,10 +136,8 @@ export function useIncidentDetail(id) {
         }
     }
 
-    // ─── handleVote ───────────────────────────────────────────
-    // reddit-style: tapping same button undoes the vote,
-    // switching sides removes the old vote and adds the new one in one DB write
     async function handleVote(type) {
+        if (!await checkOnline()) { setOfflineModal(true); return }
         if (voteLoading) return
 
         const isSameVote = userVote === type
@@ -123,12 +145,12 @@ export function useIncidentDetail(id) {
         const oppositeCol = type === 'up' ? 'downvotes' : 'upvotes'
 
         const newCount = isSameVote
-            ? Math.max(0, (incident[col] ?? 0) - 1)         // undo
-            : (incident[col] ?? 0) + 1                       // vote
+            ? Math.max(0, (incident[col] ?? 0) - 1)
+            : (incident[col] ?? 0) + 1
 
         const newOppositeCount = userVote && !isSameVote
-            ? Math.max(0, (incident[oppositeCol] ?? 0) - 1)  // remove opposite when switching
-            : (incident[oppositeCol] ?? 0)                   // unchanged
+            ? Math.max(0, (incident[oppositeCol] ?? 0) - 1)
+            : (incident[oppositeCol] ?? 0)
 
         setVoteLoading(true)
         const { error } = await supabase
@@ -139,7 +161,6 @@ export function useIncidentDetail(id) {
         if (!error) {
             setIncident(prev => ({ ...prev, [col]: newCount, [oppositeCol]: newOppositeCount }))
             setUserVote(isSameVote ? null : type)
-            // persist to incident_votes so vote survives logout
             if (isSameVote) {
                 await supabase.from('incident_votes').delete()
                     .eq('incident_id', id).eq('user_id', user.id)
@@ -155,9 +176,8 @@ export function useIncidentDetail(id) {
         setVoteLoading(false)
     }
 
-    // ─── handleWitnessed ─────────────────────────────────────
-    // one-way — no undo once witnessed
     async function handleWitnessed() {
+        if (!await checkOnline()) { setOfflineModal(true); return }
         if (voteLoading || userVote === 'witnessed') return
         const newCount = (incident.witnessed ?? 0) + 1
         setVoteLoading(true)
@@ -178,9 +198,8 @@ export function useIncidentDetail(id) {
         setVoteLoading(false)
     }
 
-    // ─── handleFollow ─────────────────────────────────────────
-    // appends/removes user.id from followed_by array on the incident row
     async function handleFollow() {
+        if (!await checkOnline()) { setOfflineModal(true); return }
         if (followLoading) return
         setFollowLoading(true)
         const currentList = incident.followed_by ?? []
@@ -201,9 +220,8 @@ export function useIncidentDetail(id) {
         setFollowLoading(false)
     }
 
-    // ─── handleVerify ─────────────────────────────────────────
-    // staff only — toggles verified flag, disabled once incident is resolved
     async function handleVerify() {
+        if (!await checkOnline()) { setOfflineModal(true); return }
         if (actionLoading) return
         setActionLoading(true)
         const newVerified = !incident.verified
@@ -227,11 +245,8 @@ export function useIncidentDetail(id) {
         setActionLoading(false)
     }
 
-    // ─── handleResolve ────────────────────────────────────────
-    // staff only — toggles resolved/active
-    // resolving also auto-verifies the incident
-    // reopening leaves verified as-is
     async function handleResolve() {
+        if (!await checkOnline()) { setOfflineModal(true); return }
         if (actionLoading) return
         setActionLoading(true)
         const newStatus = incident.status === 'resolved' ? 'active' : 'resolved'
@@ -258,9 +273,8 @@ export function useIncidentDetail(id) {
         setActionLoading(false)
     }
 
-    // ─── handleComment ────────────────────────────────────────
-    // inserts then re-fetches so the username join is fresh
     async function handleComment() {
+        if (!await checkOnline()) { setOfflineModal(true); return }
         const trimmed = commentText.trim()
         if (!trimmed || commentLoading) return
         setCommentLoading(true)
@@ -277,7 +291,6 @@ export function useIncidentDetail(id) {
     }
 
     return {
-        // data
         incident,
         userId: user?.id,
         isFollowing,
@@ -290,7 +303,8 @@ export function useIncidentDetail(id) {
         setCommentText,
         commentLoading,
         isStaff: profile?.role === 'staff',
-        // handlers
+        offlineModal,
+        setOfflineModal,
         handleVote,
         handleWitnessed,
         handleFollow,

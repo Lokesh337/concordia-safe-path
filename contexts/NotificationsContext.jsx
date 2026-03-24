@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { Animated, TouchableOpacity, View, StyleSheet, Text, Platform } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../hooks/useUser'
+import { useNetwork } from '../hooks/useNetwork'
 import { useRouter } from 'expo-router'
 import { Colors } from '../constants/Colors'
 import { Ionicons } from '@expo/vector-icons'
@@ -61,6 +62,7 @@ const ToastBanner = ({ toast, onPress, onDismiss }) => {
 // ── Provider ───────────────────────────────────────────────────
 export const NotificationsProvider = ({ children }) => {
     const { user, profile } = useUser()
+    const { isOnline } = useNetwork()
     const router = useRouter()
     const [notifications, setNotifications] = useState([])
     const [loading, setLoading] = useState(true)
@@ -87,6 +89,8 @@ export const NotificationsProvider = ({ children }) => {
 
     const fetchNotifications = useCallback(async () => {
         if (!user) return
+        // skip fetch when offline — notifications list stays as-is from last session
+        if (!isOnline) { setLoading(false); return }
         setLoading(true)
         const { data, error } = await supabase
             .from('notifications')
@@ -102,27 +106,31 @@ export const NotificationsProvider = ({ children }) => {
 
         if (!error) setNotifications(data || [])
         setLoading(false)
-    }, [user])
+    }, [user, isOnline])
 
     const markAsRead = useCallback(async (notificationId) => {
+        // optimistic update — skip the DB write if offline
+        setNotifications(prev =>
+            prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+        )
+        if (!isOnline) return
         await supabase
             .from('notifications')
             .update({ read: true })
             .eq('id', notificationId)
-        setNotifications(prev =>
-            prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-        )
-    }, [])
+    }, [isOnline])
 
     const markAllAsRead = useCallback(async () => {
         if (!user) return
+        // optimistic update — skip the DB write if offline
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+        if (!isOnline) return
         await supabase
             .from('notifications')
             .update({ read: true })
             .eq('user_id', user.id)
             .eq('read', false)
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    }, [user])
+    }, [user, isOnline])
 
     const unreadCount = notifications.filter(n => !n.read).length
 
@@ -246,27 +254,27 @@ export const useNotificationsContext = () => {
 
 const styles = StyleSheet.create({
     toast: {
-    position: 'absolute',
-    top: 100,  // ← increase from 60 to push below the header
-    left: 16,
-    right: 16,
-    zIndex: 9999,
-    elevation: 10,
-},
+        position: 'absolute',
+        top: 100,
+        left: 16,
+        right: 16,
+        zIndex: 9999,
+        elevation: 10,
+    },
     toastInner: {
-    backgroundColor: '#1a1a2e',  // ← darker, distinct from header
-    borderRadius: 12,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderLeftWidth: 4,           // ← add accent border
-    borderLeftColor: Colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-},
+        backgroundColor: '#1a1a2e',
+        borderRadius: 12,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        borderLeftWidth: 4,
+        borderLeftColor: Colors.primary,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+    },
     toastIcon: {
         width: 32,
         height: 32,

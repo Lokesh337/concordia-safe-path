@@ -3,8 +3,6 @@ import {
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
-    TouchableWithoutFeedback,
-    Keyboard,
     TouchableOpacity,
     Alert
 } from "react-native"
@@ -12,28 +10,28 @@ import { useLocalSearchParams } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from 'expo-router'
 
-// themed
 import ThemedView from "../../../components/ThemedView"
 import ThemedLoader from "../../../components/ThemedLoader"
 import Spacer from "../../../components/Spacer"
 import ThemedText from "../../../components/ThemedText"
 
-// incident components
 import IncidentHeader from "../../../components/incident/IncidentHeader"
 import IncidentProgress from "../../../components/incident/IncidentProgress"
 import IncidentInteractions from "../../../components/incident/IncidentInteractions"
 import CommentsSection from "../../../components/incident/CommentsSection"
+import OfflineActionModal from "../../../components/offline/OfflineActionModal"
 
-// hook — all state and handlers live here
 import { useIncidentDetail } from "../../../hooks/useIncidentDetail"
 import { useNotificationsContext } from '../../../contexts/NotificationsContext'
+import { useNetwork } from '../../../hooks/useNetwork'
 
-// helpers
 import { timeAgo, getDistance, formatDistance } from '../../../lib/helpers'
 import { Colors } from '../../../constants/Colors'
 
 const IncidentDetails = () => {
     const { id } = useLocalSearchParams()
+    const { isOnline } = useNetwork()
+    const router = useRouter()
 
     const {
         incident,
@@ -48,6 +46,8 @@ const IncidentDetails = () => {
         setCommentText,
         commentLoading,
         isStaff,
+        offlineModal,
+        setOfflineModal,
         handleVote,
         handleWitnessed,
         handleFollow,
@@ -57,12 +57,27 @@ const IncidentDetails = () => {
         handleDelete,
     } = useIncidentDetail(id)
 
-
     const { locationRef } = useNotificationsContext()
     const userLocation = locationRef?.current
-    const router = useRouter()
 
-    // wait for incident to load
+    // offline with nothing cached — don't spin forever, prompt to go back
+    if (!incident && isOnline === false) {
+        return (
+            <ThemedView safe style={styles.container}>
+                <View style={styles.offlineContainer}>
+                    <Ionicons name="cloud-offline-outline" size={48} color={Colors.attention} />
+                    <ThemedText style={styles.offlineTitle}>You're offline</ThemedText>
+                    <ThemedText style={styles.offlineMessage}>
+                        Incident details aren't available without a connection.
+                    </ThemedText>
+                    <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                        <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </ThemedView>
+        )
+    }
+
     if (!incident) {
         return (
             <ThemedView safe style={styles.container}>
@@ -71,8 +86,25 @@ const IncidentDetails = () => {
         )
     }
 
-    // drives progress bar step 2 and the "reported by others" badge threshold
     const netVotes = (incident.upvotes ?? 0) - (incident.downvotes ?? 0)
+
+    const confirmDelete = () => {
+        Alert.alert(
+            'Delete Incident',
+            'Are you sure you want to delete this incident? This cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await handleDelete()
+                        router.back()
+                    },
+                },
+            ]
+        )
+    }
 
     return (
         <KeyboardAvoidingView
@@ -80,127 +112,86 @@ const IncidentDetails = () => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={110}
         >
+            <ThemedView style={styles.container}>
 
-                <ThemedView style={styles.container}>
+                <IncidentHeader
+                    incident={incident}
+                    isFollowing={isFollowing}
+                    followLoading={followLoading}
+                    onFollow={handleFollow}
+                    userId={userId}
+                    onDelete={confirmDelete}
+                />
 
-                    {/* HEADER — icon, title, severity, follow button */}
-                    <IncidentHeader
-                        incident={incident}
-                        isFollowing={isFollowing}
-                        followLoading={followLoading}
-                        onFollow={handleFollow}
-                        userId={userId}
-                        onDelete={() => {
-                            Alert.alert(
-                                'Delete Incident',
-                                'Are you sure you want to delete this incident? This cannot be undone.',
-                                [
-                                    { text: 'Cancel', style: 'cancel' },
-                                    {
-                                        text: 'Delete',
-                                        style: 'destructive',
-                                        onPress: async () => {
-                                            await handleDelete()
-                                            router.back()
-                                        },
-                                    },
-                                ]
-                            )
-                        }}
-                    />
+                <Spacer height={10} />
 
-                    <Spacer height={10} />
-
-                    {/* LOCATION */}
-                    <View style={styles.locationContainer}>
-                        <View style={{ flex: 1 }}>
-                            <View style={styles.location}>
-                                <Ionicons name="location" size={16} color="#B74949" />
-                                {userLocation && incident.latitude && incident.longitude && (
-                                    <ThemedText>
-                                        {formatDistance(getDistance(userLocation.latitude, userLocation.longitude, incident.latitude, incident.longitude))} away
-                                    </ThemedText>
-                                )}
-                            </View>
-
-                            <Spacer height={10} />
-
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <View style={styles.activeDot} />
-                                    <ThemedText style={styles.time}>
-                                        {(incident.user_id === userId ? "You reported this " : "Reported ") + timeAgo(incident.created_at)}
-                                    </ThemedText>
-                                </View>
+                <View style={styles.locationContainer}>
+                    <View style={{ flex: 1 }}>
+                        <View style={styles.location}>
+                            <Ionicons name="location" size={16} color="#B74949" />
+                            {userLocation && incident.latitude && incident.longitude && (
+                                <ThemedText>
+                                    {formatDistance(getDistance(userLocation.latitude, userLocation.longitude, incident.latitude, incident.longitude))} away
+                                </ThemedText>
+                            )}
                         </View>
 
-                        <TouchableOpacity
-                            style={styles.mapLink}
-                            onPress={() => router.push({ pathname: '/map', params: { alertIncidentId: incident.id } })}
-                        >
-                            <Ionicons name="map-outline" size={24} color={Colors.primary} />
-                            <ThemedText style={styles.mapLinkText}>View on Map</ThemedText>
-                        </TouchableOpacity>
+                        <Spacer height={10} />
+
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                            <View style={styles.activeDot} />
+                            <ThemedText style={styles.time}>
+                                {(incident.user_id === userId ? "You reported this " : "Reported ") + timeAgo(incident.created_at)}
+                            </ThemedText>
+                        </View>
                     </View>
 
-                    {/*<Spacer height={10} />*/}
+                    <TouchableOpacity
+                        style={styles.mapLink}
+                        onPress={() => router.push({ pathname: '/map', params: { alertIncidentId: incident.id } })}
+                    >
+                        <Ionicons name="map-outline" size={24} color={Colors.primary} />
+                        <ThemedText style={styles.mapLinkText}>View on Map</ThemedText>
+                    </TouchableOpacity>
+                </View>
 
-                    {/*/!* TIME — green dot + relative timestamp *!/*/}
-                    {/*<View style={{ flexDirection: "row", alignItems: "center" }}>*/}
-                    {/*    <View style={styles.activeDot} />*/}
-                    {/*    <ThemedText style={styles.time}>{"Reported " + timeAgo(incident.created_at)}</ThemedText>*/}
-                    {/*</View>*/}
+                <View style={styles.separator} />
 
-                    {/*<Spacer height={20} />*/}
-                    <View style={styles.separator} />
+                <IncidentProgress incident={incident} netVotes={netVotes} />
 
-                    {/* PROGRESS BAR — submitted → reported → verified → resolved */}
-                    <IncidentProgress incident={incident} netVotes={netVotes} />
+                <View style={styles.separator} />
 
-                    <View style={styles.separator} />
+                <IncidentInteractions
+                    incident={incident}
+                    userVote={userVote}
+                    voteLoading={voteLoading}
+                    actionLoading={actionLoading}
+                    isStaff={isStaff}
+                    userId={userId}
+                    onVote={handleVote}
+                    onWitnessed={handleWitnessed}
+                    onVerify={handleVerify}
+                    onResolve={handleResolve}
+                    onDelete={confirmDelete}
+                />
 
-                    {/* INTERACTIONS — votes, witnessed, staff actions */}
-                    <IncidentInteractions
-                        incident={incident}
-                        userVote={userVote}
-                        voteLoading={voteLoading}
-                        actionLoading={actionLoading}
-                        isStaff={isStaff}
-                        userId={userId}
-                        onVote={handleVote}
-                        onWitnessed={handleWitnessed}
-                        onVerify={handleVerify}
-                        onResolve={handleResolve}
-                        onDelete={() => {
-                            Alert.alert(
-                                'Delete Incident',
-                                'Are you sure you want to delete this incident? This cannot be undone.',
-                                [
-                                    { text: 'Cancel', style: 'cancel' },
-                                    {
-                                        text: 'Delete',
-                                        style: 'destructive',
-                                        onPress: async () => {
-                                            await handleDelete()
-                                            router.back()
-                                        },
-                                    },
-                                ]
-                            )
-                        }}
-                    />
+                <View style={styles.separator} />
 
-                    <View style={styles.separator} />
+                <CommentsSection
+                    comments={comments}
+                    commentText={commentText}
+                    commentLoading={commentLoading}
+                    onChangeText={setCommentText}
+                    onSubmit={handleComment}
+                />
 
-                    {/* COMMENTS — list + input, realtime updates handled in hook */}
-                    <CommentsSection
-                        comments={comments}
-                        commentText={commentText}
-                        commentLoading={commentLoading}
-                        onChangeText={setCommentText}
-                        onSubmit={handleComment}
-                    />
+                {/* single modal shared by all write actions on this screen */}
+                <OfflineActionModal
+                    visible={offlineModal}
+                    onClose={() => setOfflineModal(false)}
+                />
 
-                </ThemedView>
+            </ThemedView>
         </KeyboardAvoidingView>
     )
 }
@@ -241,7 +232,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         width: 70,
-        // paddingVertical: 0,
         paddingHorizontal: 4,
         gap: 4,
         marginLeft: 10,
@@ -251,5 +241,36 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: '500',
         textAlign: 'center',
+    },
+    offlineContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 40,
+    },
+    offlineTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: Colors.attention,
+        marginTop: 8,
+    },
+    offlineMessage: {
+        fontSize: 14,
+        textAlign: 'center',
+        opacity: 0.7,
+        lineHeight: 20,
+    },
+    backButton: {
+        marginTop: 8,
+        backgroundColor: Colors.attention,
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        borderRadius: 30,
+    },
+    backButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 15,
     },
 })
