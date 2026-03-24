@@ -189,12 +189,14 @@ const Create = () => {
 
                     <ThemedButton
                         onPress={handleSubmit}
-                        disabled={ loading || !pin }
+                        disabled={ loading || !pin || !type || !severity }
                         style={{ alignSelf: 'stretch', marginHorizontal: 40 }}
                     >
                         <Text style={{ color: '#fff', alignSelf: 'center' }}>
                             {loading ? "Saving..."
-                                : !pin ? "Drop a Pin First!"
+                                : !pin ? "Tap on the map to select a location"
+                                : !type ? "Select an incident type"
+                                : !severity ? "Set the severity"
                                 : "Submit Incident"}
                         </Text>
                     </ThemedButton>
