@@ -4,9 +4,11 @@ import PulsingButton from '../../components/PulsingButton'
 import MapView, { Marker, Circle, Polygon } from "react-native-maps"
 import * as Location from "expo-location"
 
+
 import { useIncidents } from "../../hooks/useIncidents"
 import { useRoutes } from "../../hooks/useRoutes"
 import { useDangerDetection } from "../../hooks/useDangerDetection"
+import { useNetwork } from "../../hooks/useNetwork"
 import { useTheme } from '../../contexts/ThemeContext';
 
 import { CONCORDIA_BUILDINGS, SGW_CAMPUS_BOUNDARY, GUY_METRO } from '../../constants/Buildings'
@@ -19,6 +21,7 @@ import ThemedLoader from '../../components/ThemedLoader'
 import SearchBar from '../../components/SearchBar'
 import RoutesOptions from '../../components/RoutesOptions'
 import RouteResultsSheet from '../../components/RouteResultSheet'
+import OfflineActionModal from '../../components/offline/OfflineActionModal'
 import { useLocalSearchParams } from 'expo-router';
 import {getDistance} from "../../lib/helpers";
 import { IncidentIconMap } from '../../constants/Icons'
@@ -27,6 +30,7 @@ const BUILDING_MARKER = require('../../assets/building_marker.png')
 
 const Map = () => {
   const { colorScheme } = useTheme();
+  const { isOnline, checkOnline } = useNetwork()
   const [location, setLocation] = useState(null)
   const [error, setError] = useState(null)
   const [selectedIncidentId, setSelectedIncidentId] = useState(null)
@@ -35,6 +39,7 @@ const Map = () => {
   const [safeZoneMessage, setSafeZoneMessage] = useState(null)
   const [navigatingToSafety, setNavigatingToSafety] = useState(false)
   const [routesDismissed, setRoutesDismissed] = useState(false)
+  const [offlineModal, setOfflineModal] = useState(false)
   const originSnapshot = useRef(null)
   const mapRef = useRef(null)
 
@@ -73,13 +78,8 @@ const Map = () => {
         return dist < (SEVERITY_RADIUS[incident.severity] ?? 75)
       })
       if (inDanger) return
-      const distance =
-          Math.pow(location.latitude - building.latitude, 2) +
-          Math.pow(location.longitude - building.longitude, 2)
-      if (distance < minDistance) {
-        minDistance = distance
-        nearest = building
-      }
+      const distance = Math.pow(location.latitude - building.latitude, 2) + Math.pow(location.longitude - building.longitude, 2)
+      if (distance < minDistance) { minDistance = distance; nearest = building }
     })
     return nearest
   }
@@ -205,6 +205,7 @@ const Map = () => {
               )}
               <SearchBar // in SearchBar onSelect handler in map.jsx
                   onSelect={(dest) => {
+                    if (!isOnline) { setOfflineModal(true); return }
                     setDestination(dest)
                     setRoutesDismissed(false)
                   }}
@@ -308,7 +309,6 @@ const Map = () => {
         ))
           }
 
-          {/* circle only on tapped or alerted incident */}
           {incidents
               .filter((i) => i.latitude && i.longitude && i.status !== 'resolved' && (i.id === selectedIncidentId || i.id === alertIncidentId))
               .map((incident) => (
@@ -372,16 +372,17 @@ const Map = () => {
                     <ThemedText style={styles.safeZoneButtonText}>I AM SAFE NOW</ThemedText>
                   </TouchableOpacity>
               ) : (
+                  // SAFE ZONE NOW requires Directions API — block when offline
                   <PulsingButton
                       label="SAFE ZONE NOW"
-                      onPress={() => {
+                      onPress={async () => {
+                        if (!isOnline) { setOfflineModal(true); return }
                         const nearest = getNearestBuilding()
                         if (nearest) {
                           originSnapshot.current = location
                           setDestination({ latitude: nearest.latitude, longitude: nearest.longitude })
                           setNavigatingToSafety(true)
                           setRoutesDismissed(false)
-
                         } else {
                           setSafeZoneMessage('⚠ All nearby buildings are in a danger zone. Please stay put.')
                         }
@@ -404,9 +405,7 @@ const Map = () => {
             </View>
         )}
 
-
       {/* ROUTE SHEET */}
-
       {!isUserInDangerZone && !navigatingToSafety && routes.length > 0 && !routesDismissed && (
           <RouteResultsSheet
             routes={routes}
@@ -415,9 +414,11 @@ const Map = () => {
             onDismiss={() => setRoutesDismissed(true)}
         />
       )}
+        <OfflineActionModal visible={offlineModal} onClose={() => setOfflineModal(false)} />
     </ThemedView>
   )
 }
+
 export default Map
 
 

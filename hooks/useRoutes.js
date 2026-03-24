@@ -1,15 +1,24 @@
 import { useEffect, useState } from "react";
 import polyline from "@mapbox/polyline";
+import { useNetwork } from './useNetwork'
 
 const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_DIRECTIONS_API_KEY;
 
 export const useRoutes = (origin, destination) => {
+  const { isOnline } = useNetwork()
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!origin || !destination) return;
+
+    // directions API requires connectivity — clear and bail when offline
+    if (!isOnline) {
+      setRoutes([])
+      setLoading(false)
+      return
+    }
 
     const fetchRoutes = async () => {
       try {

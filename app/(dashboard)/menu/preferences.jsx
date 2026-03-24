@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Alert, Switch, TouchableOpacity, Text, ScrollView, BackHandler } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useUser } from '../../../hooks/useUser';
+import { useNetwork } from '../../../hooks/useNetwork';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Colors } from '../../../constants/Colors';
 import Spacer from "../../../components/Spacer";
@@ -9,8 +10,8 @@ import ThemedText from "../../../components/ThemedText";
 import ThemedView from "../../../components/ThemedView";
 import ThemedTextInput from "../../../components/ThemedTextInput";
 import ThemedButton from '../../../components/ThemedButton';
+import OfflineActionModal from '../../../components/offline/OfflineActionModal';
 
-// ─── App-wide defaults (used only if user has never saved preferences) ────────
 const APP_DEFAULTS = {
     darkMode: false,
     accessibilityRouting: false,
@@ -22,7 +23,6 @@ const APP_DEFAULTS = {
     notifVandalism: 'normal',
 };
 
-// Builds a values snapshot from the profile object (or falls back to APP_DEFAULTS)
 const profileToValues = (profile) => ({
     darkMode:             profile?.dark_mode              ?? APP_DEFAULTS.darkMode,
     accessibilityRouting: profile?.accessibility_routing  ?? APP_DEFAULTS.accessibilityRouting,
@@ -36,19 +36,17 @@ const profileToValues = (profile) => ({
 
 const Preferences = () => {
     const { user, profile, updateProfile } = useUser();
+    const { checkOnline } = useNetwork();
     const { colorScheme, setDarkMode: applyDarkMode } = useTheme();
     const theme = Colors[colorScheme] ?? Colors.light;
     const router = useRouter();
     const [saving, setSaving] = useState(false);
+    const [offlineModal, setOfflineModal] = useState(false);
     const isFirstTime = !profile?.preferences_completed;
 
-    // ── "Saved" values: ground truth from DB. Never changes unless user hits Save.
     const savedValuesRef = useRef(profileToValues(profile));
-
-    // ── prefUpdated: true only when user has changed something THIS session
     const [prefUpdated, setPrefUpdated] = useState(false);
 
-    // ── Temp working state: what is shown on screen right now
     const [darkMode,             setDarkMode]             = useState(savedValuesRef.current.darkMode);
     const [accessibilityRouting, setAccessibilityRouting] = useState(savedValuesRef.current.accessibilityRouting);
     const [distanceNormal,       setDistanceNormal]       = useState(savedValuesRef.current.distanceNormal);
@@ -58,7 +56,6 @@ const Preferences = () => {
     const [notifConstruction,    setNotifConstruction]    = useState(savedValuesRef.current.notifConstruction);
     const [notifVandalism,       setNotifVandalism]       = useState(savedValuesRef.current.notifVandalism);
 
-    // Once profile loads from DB for the first time, seed savedValuesRef and working state
     const profileLoadedRef = useRef(false);
     useEffect(() => {
         if (profile && !profileLoadedRef.current) {
@@ -77,7 +74,6 @@ const Preferences = () => {
         }
     }, [profile]);
 
-    // ── Discard: wipe temp state back to savedValuesRef ──────────────────────
     const discardChanges = useCallback(() => {
         const vals = savedValuesRef.current;
         setDarkMode(vals.darkMode);
@@ -92,7 +88,6 @@ const Preferences = () => {
         setPrefUpdated(false);
     }, [applyDarkMode]);
 
-    // ── Back button: if prefUpdated → show popup, else just go back ──────────
     const handleBackPress = useCallback(() => {
         if (prefUpdated) {
             Alert.alert(
@@ -103,10 +98,7 @@ const Preferences = () => {
                     {
                         text: 'Discard',
                         style: 'destructive',
-                        onPress: () => {
-                            discardChanges();
-                            router.back();
-                        }
+                        onPress: () => { discardChanges(); router.back(); }
                     }
                 ]
             );
@@ -116,41 +108,26 @@ const Preferences = () => {
         return true;
     }, [prefUpdated, discardChanges, router]);
 
-    // Android hardware back button
     useEffect(() => {
         const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-            if (prefUpdated) {
-                handleBackPress();
-                return true;
-            }
+            if (prefUpdated) { handleBackPress(); return true; }
             return false;
         });
         return () => subscription.remove();
     }, [prefUpdated, handleBackPress]);
 
-    // ── Save: commit temp values into savedValuesRef ──────────────────────────
     const handleSave = async () => {
+        // fresh connectivity check — avoids stale isOnline race condition
+        if (!await checkOnline()) { setOfflineModal(true); return; }
+
         const normalVal = parseInt(distanceNormal) || 500;
         const silentVal = parseInt(distanceSilent) || 1000;
-
         if (silentVal <= normalVal) {
-            Alert.alert(
-                'Invalid Distance Settings',
-                '"Silent if under" must be greater than "Normal if under".'
-            );
+            Alert.alert('Invalid Distance Settings', '"Silent if under" must be greater than "Normal if under".');
             return;
         }
         setSaving(true);
-        const newValues = {
-            darkMode,
-            accessibilityRouting,
-            distanceNormal,
-            distanceSilent,
-            notifProtest,
-            notifRoad,
-            notifConstruction,
-            notifVandalism,
-        };
+        const newValues = { darkMode, accessibilityRouting, distanceNormal, distanceSilent, notifProtest, notifRoad, notifConstruction, notifVandalism };
         try {
             await updateProfile(user.id, {
                 dark_mode:             newValues.darkMode,
@@ -163,9 +140,7 @@ const Preferences = () => {
                 notif_vandalism:       newValues.notifVandalism,
                 preferences_completed: true,
             });
-            // apply dark mode on save
             applyDarkMode(newValues.darkMode);
-            // prefSaved: temp values are now the new saved values
             savedValuesRef.current = newValues;
             setPrefUpdated(false);
             if (isFirstTime) {
@@ -182,6 +157,7 @@ const Preferences = () => {
     };
 
     const handleSkip = async () => {
+        if (!await checkOnline()) { setOfflineModal(true); return; }
         await updateProfile(user.id, { preferences_completed: true });
         router.replace('/incidents');
     };
@@ -224,16 +200,9 @@ const Preferences = () => {
 
                 <View style={[styles.section, { backgroundColor: theme.uiBackground }]}>
                     <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: theme.title }]}>App Settings</ThemedText>
-
                     <View style={styles.settingRow}>
-                        <View style={{ flex: 1 }}>
-                            <ThemedText>Dark Mode</ThemedText>
-                        </View>
-                        <Switch
-                            trackColor={{ true: Colors.primary }}
-                            onValueChange={(val) => { setDarkMode(val); markUpdated(); }}
-                            value={darkMode}
-                        />
+                        <View style={{ flex: 1 }}><ThemedText>Dark Mode</ThemedText></View>
+                        <Switch trackColor={{ true: Colors.primary }} onValueChange={(val) => { setDarkMode(val); markUpdated(); }} value={darkMode} />
                     </View>
                     <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
                     <View style={styles.settingRow}>
@@ -241,39 +210,24 @@ const Preferences = () => {
                             <ThemedText>Accessible Routing</ThemedText>
                             <ThemedText style={[styles.helperText, { color: theme.text }]}>Prioritize elevators and wheelchair-accessible paths in navigation previews.</ThemedText>
                         </View>
-                        <Switch
-                            trackColor={{ true: Colors.primary }}
-                            onValueChange={(val) => { setAccessibilityRouting(val); markUpdated(); }}
-                            value={accessibilityRouting}
-                        />
+                        <Switch trackColor={{ true: Colors.primary }} onValueChange={(val) => { setAccessibilityRouting(val); markUpdated(); }} value={accessibilityRouting} />
                     </View>
                 </View>
 
                 <View style={[styles.section, { backgroundColor: theme.uiBackground }]}>
                     <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: theme.title }]}>Distance-Based Alerts</ThemedText>
                     <ThemedText style={[styles.helperText, { color: theme.text }]}>Incidents outside these radii will be completely muted.</ThemedText>
-
                     <View style={styles.distanceRow}>
                         <ThemedText style={styles.distanceLabel}>Normal if under:</ThemedText>
                         <View style={[styles.radiusInputContainer, { backgroundColor: theme.background, borderColor: Colors.divider }]}>
-                            <ThemedTextInput
-                                style={styles.radiusInput}
-                                value={distanceNormal}
-                                onChangeText={(val) => { setDistanceNormal(val); markUpdated(); }}
-                                keyboardType="number-pad"
-                            />
+                            <ThemedTextInput style={styles.radiusInput} value={distanceNormal} onChangeText={(val) => { setDistanceNormal(val); markUpdated(); }} keyboardType="number-pad" />
                             <ThemedText style={[styles.unitText, { color: theme.text }]}>m</ThemedText>
                         </View>
                     </View>
                     <View style={styles.distanceRow}>
                         <ThemedText style={styles.distanceLabel}>Silent if under:</ThemedText>
                         <View style={[styles.radiusInputContainer, { backgroundColor: theme.background, borderColor: Colors.divider }]}>
-                            <ThemedTextInput
-                                style={styles.radiusInput}
-                                value={distanceSilent}
-                                onChangeText={(val) => { setDistanceSilent(val); markUpdated(); }}
-                                keyboardType="number-pad"
-                            />
+                            <ThemedTextInput style={styles.radiusInput} value={distanceSilent} onChangeText={(val) => { setDistanceSilent(val); markUpdated(); }} keyboardType="number-pad" />
                             <ThemedText style={[styles.unitText, { color: theme.text }]}>m</ThemedText>
                         </View>
                     </View>
@@ -282,15 +236,14 @@ const Preferences = () => {
                 <View style={[styles.section, { backgroundColor: theme.uiBackground }]}>
                     <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: theme.title }]}>Incident Type Sound</ThemedText>
                     <ThemedText style={[styles.helperText, { color: theme.text }]}>These settings override the notification sound for incident type.</ThemedText>
-
                     <View style={{ marginTop: 10 }}>
-                        <TriToggle label="Protest"      value={notifProtest}      onValueChange={setNotifProtest} />
+                        <TriToggle label="Protest"       value={notifProtest}      onValueChange={setNotifProtest} />
                         <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
-                        <TriToggle label="Road Blockage" value={notifRoad}         onValueChange={setNotifRoad} />
+                        <TriToggle label="Road Blockage"  value={notifRoad}         onValueChange={setNotifRoad} />
                         <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
-                        <TriToggle label="Construction"  value={notifConstruction} onValueChange={setNotifConstruction} />
+                        <TriToggle label="Construction"   value={notifConstruction} onValueChange={setNotifConstruction} />
                         <View style={[styles.divider, { backgroundColor: Colors.divider }]} />
-                        <TriToggle label="Vandalism"     value={notifVandalism}    onValueChange={setNotifVandalism} />
+                        <TriToggle label="Vandalism"      value={notifVandalism}    onValueChange={setNotifVandalism} />
                     </View>
                 </View>
 
@@ -308,6 +261,8 @@ const Preferences = () => {
 
                 <Spacer height={40} />
             </ScrollView>
+
+            <OfflineActionModal visible={offlineModal} onClose={() => setOfflineModal(false)} />
         </ThemedView>
     );
 };
@@ -319,16 +274,7 @@ const styles = StyleSheet.create({
     scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
     onboardingText: { marginBottom: 20, opacity: 0.7, fontSize: 14 },
     subtitle: { fontSize: 13, opacity: 0.6, marginBottom: 12 },
-    section: {
-        marginBottom: 20,
-        padding: 18,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 3,
-        elevation: 2,
-    },
+    section: { marginBottom: 20, padding: 18, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 },
     sectionTitle: { marginBottom: 15 },
     helperText: { fontSize: 13, opacity: 0.7, marginTop: 4, marginBottom: 5 },
     settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 },
