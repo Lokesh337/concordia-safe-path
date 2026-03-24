@@ -21,7 +21,7 @@ import RoutesOptions from '../../components/RoutesOptions'
 import RouteResultsSheet from '../../components/RouteResultSheet'
 import { useLocalSearchParams } from 'expo-router';
 import {getDistance} from "../../lib/helpers";
-
+import { IncidentIconMap } from '../../constants/Icons'
 
 const BUILDING_MARKER = require('../../assets/building_marker.png')
 
@@ -245,17 +245,50 @@ const Map = () => {
               .filter((i) => i.latitude && i.longitude && i.status !== 'resolved')
               .map((incident) => (
                   <Marker
-                    onPress={() => setSelectedIncidentId(incident.id)}
                     key={incident.id}
-                    coordinate={{ latitude: incident.latitude, longitude: incident.longitude }}
-                    title={`${incident.type.charAt(0).toUpperCase() + incident.type.slice(1)} — ${incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)} Tension`}                    description={[
-                    incident.upvotes >= 4 && `Reported by ${incident.upvotes}`,
-                    incident.verified && 'Verified by Campus',
-                    incident.status === 'resolved' && 'Resolved',
-                    ].filter(Boolean).join(' • ') || null}
-                    pinColor={Colors.severity[incident.severity]}
+                    coordinate={{latitude: incident.latitude,longitude: incident.longitude,
+                  }}
+                    onPress={() => setSelectedIncidentId(incident.id)}
+                    tracksViewChanges={true}
+                  >
+                  <View style={{ alignItems: 'center' }}>
+
+                  {/* ICON CONTAINER */}
+                  <View
+                    style={{
+                      backgroundColor: Colors.severity[incident.severity],
+                      padding: 8,
+                      borderRadius: 30,
+                      borderWidth: selectedIncidentId === incident.id ? 3 : 2,
+                      borderColor: selectedIncidentId === incident.id ? '#fcfcf9' : '#0b0b0b',
+                      elevation: 8,
+                  }}
+                  >
+                    {(() => {
+                      const IconComponent =
+                      IncidentIconMap[incident.type] || IncidentIconMap['protest'] // fallback
+
+                      return <IconComponent size={16} color="#0b0a0a" />
+                    })()}
+                  </View>
+
+                  {/* POINTER */}
+                  <View
+                  style={{
+                    width: 0,
+                    height: 0,
+                    borderLeftWidth: 10,
+                    borderRightWidth: 10,
+                    borderTopWidth: 20,
+                    borderLeftColor: 'transparent',
+                    borderRightColor: 'transparent',
+                    borderTopColor: Colors.severity[incident.severity],
+                    marginTop: -2,
+                  }}
                   />
-              ))
+          </View>
+          </Marker>
+        ))
           }
 
           {/* circle only on tapped or alerted incident */}
