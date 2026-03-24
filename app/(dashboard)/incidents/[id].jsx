@@ -80,7 +80,6 @@ const IncidentDetails = () => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={110}
         >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
                 <ThemedView style={styles.container}>
 
@@ -202,7 +201,6 @@ const IncidentDetails = () => {
                     />
 
                 </ThemedView>
-            </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
     )
 }
