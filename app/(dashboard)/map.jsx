@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState,  } from "react"
-import {StyleSheet, View, TouchableOpacity, Keyboard} from 'react-native'
+import {StyleSheet, View, TouchableOpacity, Keyboard, Text } from 'react-native'
 import PulsingButton from '../../components/PulsingButton'
 import MapView, { Marker, Circle, Polygon } from "react-native-maps"
 import * as Location from "expo-location"
@@ -25,6 +25,8 @@ import OfflineActionModal from '../../components/offline/OfflineActionModal'
 import { useLocalSearchParams } from 'expo-router';
 import {getDistance} from "../../lib/helpers";
 import { IncidentIconMap } from '../../constants/Icons'
+import { useRouter } from 'expo-router'
+import {Ionicons} from "@expo/vector-icons";
 
 const BUILDING_MARKER = require('../../assets/building_marker.png')
 
@@ -34,6 +36,7 @@ const Map = () => {
   const [location, setLocation] = useState(null)
   const [error, setError] = useState(null)
   const [selectedIncidentId, setSelectedIncidentId] = useState(null)
+  const [selectedIncident, setSelectedIncident] = useState(null)
   const [destination, setDestination] = useState(null)
   const [selectedRouteId, setSelectedRouteId] = useState(null)
   const [safeZoneMessage, setSafeZoneMessage] = useState(null)
@@ -42,12 +45,13 @@ const Map = () => {
   const [offlineModal, setOfflineModal] = useState(false)
   const originSnapshot = useRef(null)
   const mapRef = useRef(null)
-
+  const router = useRouter()
   const { incidents } = useIncidents()
   const { routes } = useRoutes(navigatingToSafety ? originSnapshot.current : location, destination)
 
   const { alertIncidentId: _alertIncidentId } = useLocalSearchParams()
-  const alertIncidentId = Array.isArray(_alertIncidentId) ? _alertIncidentId[0] : _alertIncidentId
+  const rawAlertId = Array.isArray(_alertIncidentId) ? _alertIncidentId[0] : _alertIncidentId
+  const [alertIncidentId, setAlertIncidentId] = useState(rawAlertId)
 
   const {
     isUserInDangerZone,
@@ -121,17 +125,19 @@ const Map = () => {
 
   // zoom to incident when arriving from proximity alert modal
   useEffect(() => {
-    if (!alertIncidentId || !mapRef.current) return
-    const incident = incidents.find(i => i.id === alertIncidentId)
+    if (!rawAlertId || !mapRef.current) return
+    const incident = incidents.find(i => i.id === rawAlertId)
     if (!incident) return
-    setSelectedIncidentId(alertIncidentId)
+    setAlertIncidentId(rawAlertId)  // set local state so circle shows
+    setSelectedIncidentId(rawAlertId)
+    setSelectedIncident(incident)
     mapRef.current.animateToRegion({
       latitude: incident.latitude,
       longitude: incident.longitude,
       latitudeDelta: 0.003,
       longitudeDelta: 0.003,
     }, 600)
-  }, [alertIncidentId, incidents])
+  }, [rawAlertId, incidents])
 
   // zoom to incident when tapping a marker
   useEffect(() => {
@@ -232,8 +238,10 @@ const Map = () => {
             zoomControlEnabled={true}
             onPress={() => {
               setSelectedIncidentId(null)
+              setSelectedIncident(null)
+              setAlertIncidentId(null)
               Keyboard.dismiss()
-            }}        >
+            }}       >
           {CONCORDIA_BUILDINGS.map((building) => (
               <Marker
                   key={building.name}
@@ -247,14 +255,17 @@ const Map = () => {
               .filter((i) => i.latitude && i.longitude && i.status !== 'resolved')
               .map((incident) => (
                   <Marker
-                    onPress={() => setSelectedIncidentId(incident.id)}
+                    onPress={() => {
+                      setSelectedIncident(incident)
+                      setSelectedIncidentId(incident.id)
+                  }}
                     key={incident.id}
                     coordinate={{latitude: incident.latitude,longitude: incident.longitude,}}
-                    title={`${incident.type.charAt(0).toUpperCase() + incident.type.slice(1)} — ${incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)} Tension`}                    description={[
-                    incident.upvotes >= 4 && `Reported by ${incident.upvotes}`,
-                    incident.verified && 'Verified by Campus',
-                    incident.status === 'resolved' && 'Resolved',
-                    ].filter(Boolean).join(' • ') || null}
+                    // title={`${incident.type.charAt(0).toUpperCase() + incident.type.slice(1)} — ${incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)} Tension`}                    description={[
+                    // incident.upvotes >= 4 && `Reported by ${incident.upvotes}`,
+                    // incident.verified && 'Verified by Campus',
+                    // incident.status === 'resolved' && 'Resolved',
+                    // ].filter(Boolean).join(' • ') || null}
                     tracksViewChanges={true}
                   >
                   <View style={{ alignItems: 'center' }}>
@@ -346,7 +357,40 @@ const Map = () => {
 
           ))}
         </MapView>
-
+        {selectedIncident && (
+            <TouchableOpacity
+                style={[
+                  styles.incidentCallout,
+                  { borderLeftWidth: 2, borderLeftColor: Colors.severity[selectedIncident.severity],
+                  borderWidth: 2, borderColor: Colors.severity[selectedIncident.severity]}
+                ]}
+                onPress={() => {
+                  setSelectedIncident(null)
+                  setSelectedIncidentId(null)
+                  setAlertIncidentId(null)
+                  router.push(`/incidents/${selectedIncident.id}`)
+                }}
+                activeOpacity={0.9}
+            >
+              <View style={styles.calloutTop}>
+                <View style={[styles.calloutSeverityDot, { backgroundColor: Colors.severity[selectedIncident.severity] }]} />
+                <Text style={styles.calloutTitle}>
+                  {selectedIncident.type.charAt(0).toUpperCase() + selectedIncident.type.slice(1)}
+                </Text>
+                {selectedIncident.verified && (
+                    <View style={styles.calloutVerifiedBadge}>
+                      <Text style={styles.calloutVerifiedText}>✓ Verified</Text>
+                    </View>
+                )}
+                <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+              </View>
+              <Text style={styles.calloutSeverity}>
+                {selectedIncident.severity.charAt(0).toUpperCase() + selectedIncident.severity.slice(1)} Tension
+                {selectedIncident.upvotes >= 4 ? ` · ${selectedIncident.upvotes} reports` : ''}
+              </Text>
+              <Text style={styles.calloutHint}>Tap to view details</Text>
+            </TouchableOpacity>
+        )}
         {(isUserInDangerZone || navigatingToSafety) && (
             <>
               {safeZoneMessage && !navigatingToSafety && (
@@ -529,25 +573,59 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
-
-  callout: {
-    width: 180,
-    padding: 8,
+  incidentCallout: {
+    position: 'absolute',
+    top: 80,
+    alignSelf: 'center',
+    width: '65%',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    zIndex: 20,
+  },
+  calloutTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  calloutSeverityDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   calloutTitle: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 14,
-    color: '#000',
+    color: '#111',
+    flex: 1,
+  },
+  calloutVerifiedBadge: {
+    backgroundColor: '#D1FAE5',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  calloutVerifiedText: {
+    fontSize: 11,
+    color: '#065F46',
+    fontWeight: '600',
   },
   calloutSeverity: {
     fontSize: 12,
-    color: '#555',
-    marginTop: 2,
+    color: '#6B7280',
+    marginBottom: 4,
   },
   calloutHint: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.primary,
-    marginTop: 4,
+    fontWeight: '500',
   },
 
 })
