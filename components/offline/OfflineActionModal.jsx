@@ -14,7 +14,7 @@ const OfflineActionModal = ({ visible, onClose }) => {
                 <View style={styles.card}>
 
                     <View style={styles.iconCircle}>
-                        <Ionicons name="cloud-offline-outline" size={30} color={Colors.primary} />
+                        <Ionicons name="cloud-offline-outline" size={30} color='#fff' />
                     </View>
 
                     <Text style={styles.title}>You're offline</Text>

@@ -58,7 +58,7 @@ const Map = () => {
     destination,
     routes,
     selectedRouteId,
-    verifiedIncidents: incidents,
+    verifiedIncidents: incidents.filter(i => i.status !== 'resolved'),
     dangerRadius: SEVERITY_RADIUS,
   })
 
@@ -411,7 +411,12 @@ const Map = () => {
             routes={routes}
             selectedRouteId={selectedRouteId}
             onSelectRoute={setSelectedRouteId}
-            onDismiss={() => setRoutesDismissed(true)}
+            onDismiss={() =>{
+                setRoutesDismissed(true)
+              setDestination(null); // clear destination to hide warnings
+              setSelectedRouteId(null); // clear selected route to hide route warnings
+          }}
+
         />
       )}
         <OfflineActionModal visible={offlineModal} onClose={() => setOfflineModal(false)} />
