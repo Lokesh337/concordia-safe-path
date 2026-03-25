@@ -27,18 +27,33 @@ export function useIncidentDetail(id) {
     // track previous online state to detect the offline→online transition
     const wasOnlineRef = useRef(isOnline)
 
+    const userVoteRef = useRef(null)
+
+    // keep ref in sync whenever state changes
+    useEffect(() => {
+        userVoteRef.current = userVote
+    }, [userVote])
+
+    useEffect(() => {
+        console.log('[userVote changed]', userVote)
+    }, [userVote])
+
     // ─── load incident ────────────────────────────────────────
     useEffect(() => {
         async function loadIncident() {
-            if (!id) return
+            if (!id || !user?.id) return  // wait for user to be loaded
             const data = await fetchIncidentById(id)
             if (!data) return
+            // console.log('loadIncident', { reporterId: data.user_id, currentUserId: user?.id, match: data.user_id === user?.id })
             setIncident(data)
             setIsFollowing(data.followed_by?.includes(user?.id) ?? false)
-            if (data.user_id === user?.id) setUserVote('up')
+            if (data.user_id === user?.id) {
+                setUserVote('up')
+                userVoteRef.current = 'up'
+            }
         }
         loadIncident()
-    }, [id])
+    }, [id, user?.id])  // add user?.id to deps
 
     // ─── refetch on reconnect ─────────────────────────────────
     // when the device comes back online after being offline,
@@ -62,18 +77,31 @@ export function useIncidentDetail(id) {
     // ─── load user's existing vote ────────────────────────────
     useEffect(() => {
         async function loadUserVote() {
-            if (!user?.id) return
-            if (incident?.user_id === user.id) return
+            if (!user?.id || !id) return
+
+            const { data: incidentRow } = await supabase
+                .from('incidents')
+                .select('user_id')
+                .eq('id', id)
+                .single()
+
+            // reporter's vote is set by loadIncident — skip
+            if (incidentRow?.user_id === user.id) return
+
             const { data } = await supabase
                 .from('incident_votes')
                 .select('vote')
                 .eq('incident_id', id)
                 .eq('user_id', user.id)
                 .maybeSingle()
-            if (data) setUserVote(data.vote)
+
+            if (data) {
+                setUserVote(data.vote)
+                userVoteRef.current = data.vote
+            }
         }
         loadUserVote()
-    }, [id, user?.id])
+    }, [id, user?.id])  // no incident?.user_id dep — fires exactly once, can't be re-triggered by realtime
 
     // ─── realtime: incident row ───────────────────────────────
     // isOnline in deps so the channel resubscribes when connectivity returns
@@ -86,6 +114,7 @@ export function useIncidentDetail(id) {
                 { event: 'UPDATE', schema: 'public', table: 'incidents', filter: `id=eq.${id}` },
                 (payload) => {
                     __DEV__ && console.log('[useIncidentDetail] realtime update')
+                    // console.log('realtime update', { currentUserVote: userVote, userId: user?.id })
                     setIncident(payload.new)
                 }
             )
@@ -140,39 +169,26 @@ export function useIncidentDetail(id) {
         if (!await checkOnline()) { setOfflineModal(true); return }
         if (voteLoading) return
 
-        const isSameVote = userVote === type
-        const col = type === 'up' ? 'upvotes' : 'downvotes'
-        const oppositeCol = type === 'up' ? 'downvotes' : 'upvotes'
+        const currentVote = userVoteRef.current
+        const isSameVote = currentVote === type
+        const nextVote = isSameVote ? null : type
 
-        const newCount = isSameVote
-            ? Math.max(0, (incident[col] ?? 0) - 1)
-            : (incident[col] ?? 0) + 1
-
-        const newOppositeCount = userVote && !isSameVote
-            ? Math.max(0, (incident[oppositeCol] ?? 0) - 1)
-            : (incident[oppositeCol] ?? 0)
-
+        setUserVote(nextVote)
+        userVoteRef.current = nextVote
         setVoteLoading(true)
-        const { error } = await supabase
-            .from('incidents')
-            .update({ [col]: newCount, [oppositeCol]: newOppositeCount })
-            .eq('id', id)
 
-        if (!error) {
-            setIncident(prev => ({ ...prev, [col]: newCount, [oppositeCol]: newOppositeCount }))
-            setUserVote(isSameVote ? null : type)
-            if (isSameVote) {
-                await supabase.from('incident_votes').delete()
-                    .eq('incident_id', id).eq('user_id', user.id)
-            } else {
-                await supabase.from('incident_votes').upsert(
-                    { incident_id: id, user_id: user.id, vote: type },
-                    { onConflict: 'incident_id,user_id' }
-                )
-            }
-        } else {
-            __DEV__ && console.log('[useIncidentDetail] vote error:', error.message)
+        const { error } = await supabase.rpc('cast_vote', {
+            p_incident_id: id,
+            p_user_id: user.id,
+            p_vote: nextVote,
+        })
+
+        if (error) {
+            __DEV__ && console.log('[handleVote] rpc error:', error.message)
+            setUserVote(currentVote)
+            userVoteRef.current = currentVote
         }
+
         setVoteLoading(false)
     }
 

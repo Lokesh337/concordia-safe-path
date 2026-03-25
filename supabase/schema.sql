@@ -223,6 +223,45 @@ create policy "Users can delete own votes"
     on incident_votes for delete
 using (auth.uid() = user_id);
 
+create or replace function cast_vote(
+  p_incident_id uuid,
+  p_user_id uuid,
+  p_vote text  -- 'up' | 'down' | null (null = removing vote)
+) returns void language plpgsql as $$
+declare
+existing text;
+begin
+  -- get the user's current vote if any
+select vote into existing
+from incident_votes
+where incident_id = p_incident_id and user_id = p_user_id;
+
+-- undo the previous vote's count
+if existing = 'up' then
+update incidents set upvotes = greatest(0, upvotes - 1) where id = p_incident_id;
+elsif existing = 'down' then
+update incidents set downvotes = greatest(0, downvotes - 1) where id = p_incident_id;
+end if;
+
+  -- apply the new vote's count
+  if p_vote = 'up' then
+update incidents set upvotes = upvotes + 1 where id = p_incident_id;
+elsif p_vote = 'down' then
+update incidents set downvotes = downvotes + 1 where id = p_incident_id;
+end if;
+
+  -- upsert or delete the vote row
+  if p_vote is null then
+delete from incident_votes
+where incident_id = p_incident_id and user_id = p_user_id;
+else
+    insert into incident_votes (incident_id, user_id, vote)
+    values (p_incident_id, p_user_id, p_vote)
+    on conflict (incident_id, user_id) do update set vote = p_vote;
+end if;
+end;
+$$;
+
 -- ============================================================
 -- TABLE: emergency_contacts
 -- Per-user emergency contacts for the resources page.
