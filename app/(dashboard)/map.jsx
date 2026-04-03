@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState,  } from "react"
-import {StyleSheet, View, TouchableOpacity, Keyboard, Text } from 'react-native'
+import {useCallback, useEffect, useRef, useState} from "react"
+import { StyleSheet, View, TouchableOpacity, Keyboard, Text } from 'react-native'
 import PulsingButton from '../../components/PulsingButton'
 import MapView, { Marker, Circle, Polygon } from "react-native-maps"
 import * as Location from "expo-location"
-
 
 import { useIncidents } from "../../hooks/useIncidents"
 import { useRoutes } from "../../hooks/useRoutes"
 import { useDangerDetection } from "../../hooks/useDangerDetection"
 import { useNetwork } from "../../hooks/useNetwork"
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '../../contexts/ThemeContext'
 
 import { CONCORDIA_BUILDINGS, SGW_CAMPUS_BOUNDARY, GUY_METRO } from '../../constants/Buildings'
 import { Colors } from '../../constants/Colors'
@@ -22,7 +21,7 @@ import SearchBar from '../../components/SearchBar'
 import RoutesOptions from '../../components/RoutesOptions'
 import RouteResultsSheet from '../../components/RouteResultSheet'
 import OfflineActionModal from '../../components/offline/OfflineActionModal'
-import { useLocalSearchParams } from 'expo-router';
+import {useFocusEffect, useLocalSearchParams} from 'expo-router';
 import {getDistance} from "../../lib/helpers";
 import { IncidentIconMap } from '../../constants/Icons'
 import { useRouter } from 'expo-router'
@@ -48,9 +47,12 @@ const Map = () => {
   const router = useRouter()
   const { incidents } = useIncidents()
   const { routes } = useRoutes(navigatingToSafety ? originSnapshot.current : location, destination)
+  const [alertTrigger, setAlertTrigger] = useState(0)
 
-  const { alertIncidentId: _alertIncidentId } = useLocalSearchParams()
+  const { alertIncidentId: _alertIncidentId, alertTrigger: _alertTrigger } = useLocalSearchParams()
   const rawAlertId = Array.isArray(_alertIncidentId) ? _alertIncidentId[0] : _alertIncidentId
+  const rawTrigger = Array.isArray(_alertTrigger) ? _alertTrigger[0] : _alertTrigger
+
   const [alertIncidentId, setAlertIncidentId] = useState(rawAlertId)
 
   const {
@@ -123,25 +125,30 @@ const Map = () => {
     }, 0)
   }, [])
 
-  // zoom to incident when arriving from proximity alert modal
+  // zoom to incident when arriving from proximity alert or incident detail
+  // slow path — runs when incidents load after map is already ready
   useEffect(() => {
-    if (!rawAlertId || !mapRef.current) return
+    if (!rawAlertId || !incidents.length) return
     const incident = incidents.find(i => i.id === rawAlertId)
     if (!incident) return
-    setAlertIncidentId(rawAlertId)  // set local state so circle shows
+    setAlertIncidentId(rawAlertId)
     setSelectedIncidentId(rawAlertId)
     setSelectedIncident(incident)
-    mapRef.current.animateToRegion({
+    mapRef.current?.animateToRegion({
       latitude: incident.latitude,
       longitude: incident.longitude,
       latitudeDelta: 0.003,
       longitudeDelta: 0.003,
     }, 600)
-  }, [rawAlertId, incidents])
+  }, [rawAlertId, rawTrigger])
 
   // zoom to incident when tapping a marker
+  const userTappedMarker = useRef(false)
+
   useEffect(() => {
     if (!selectedIncidentId || !mapRef.current) return
+    if (!userTappedMarker.current) return  // only zoom on explicit tap
+    userTappedMarker.current = false
     const incident = incidents.find(i => i.id === selectedIncidentId)
     if (!incident) return
     mapRef.current.animateToRegion({
@@ -177,6 +184,26 @@ const Map = () => {
     }
   }, [isUserInDangerZone])
 
+  // clear callout if selected incident gets resolved via realtime
+  useEffect(() => {
+    if (!selectedIncident) return
+    const updated = incidents.find(i => i.id === selectedIncident.id)
+    if (!updated || updated.status === 'resolved') {
+      setSelectedIncident(null)
+      setSelectedIncidentId(null)
+    }
+  }, [incidents])
+
+  // clear selected incident when screen comes into focus from navigation
+  useFocusEffect(
+      useCallback(() => {
+        if (!rawAlertId) {
+          setSelectedIncident(null)
+          setSelectedIncidentId(null)
+          setAlertIncidentId(null)
+        }
+      }, [rawAlertId])
+  )
 
   if (error) {
     return (
@@ -236,12 +263,28 @@ const Map = () => {
             showsBuildings={false}
             showsMyLocationButton={true}
             zoomControlEnabled={true}
+            onMapReady={() => {
+              // fast path — map mounted after incidents already loaded
+              if (!rawAlertId || !incidents.length) return
+              const incident = incidents.find(i => i.id === rawAlertId)
+              if (!incident) return
+              setAlertIncidentId(rawAlertId)
+              setSelectedIncidentId(rawAlertId)
+              setSelectedIncident(incident)
+              mapRef.current?.animateToRegion({
+                latitude: incident.latitude,
+                longitude: incident.longitude,
+                latitudeDelta: 0.003,
+                longitudeDelta: 0.003,
+              }, 600)
+            }}
             onPress={() => {
               setSelectedIncidentId(null)
               setSelectedIncident(null)
               setAlertIncidentId(null)
               Keyboard.dismiss()
-            }}       >
+            }}
+        >
           {CONCORDIA_BUILDINGS.map((building) => (
               <Marker
                   key={building.name}
@@ -255,69 +298,61 @@ const Map = () => {
               .filter((i) => i.latitude && i.longitude && i.status !== 'resolved')
               .map((incident) => (
                   <Marker
-                    onPress={() => {
-                      setSelectedIncident(incident)
-                      setSelectedIncidentId(incident.id)
-                  }}
-                    key={incident.id}
-                    coordinate={{latitude: incident.latitude,longitude: incident.longitude,}}
-                    // title={`${incident.type.charAt(0).toUpperCase() + incident.type.slice(1)} — ${incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)} Tension`}                    description={[
-                    // incident.upvotes >= 4 && `Reported by ${incident.upvotes}`,
-                    // incident.verified && 'Verified by Campus',
-                    // incident.status === 'resolved' && 'Resolved',
-                    // ].filter(Boolean).join(' • ') || null}
-                    tracksViewChanges={true}
+                      key={incident.id}
+                      onPress={() => {
+                        userTappedMarker.current = true
+                        setSelectedIncident(incident)
+                        setSelectedIncidentId(incident.id)
+                      }}
+                      coordinate={{ latitude: incident.latitude, longitude: incident.longitude }}
+                      tracksViewChanges={true}
                   >
-                  <View style={{ alignItems: 'center' }}>
+                    <View style={{ alignItems: 'center' }}>
 
-                  {/* ICON CONTAINER */}
-                  <View
-                    style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: Colors.severity[incident.severity],
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderWidth: selectedIncidentId === incident.id ? 3 : 2,
-                    borderColor: selectedIncidentId === incident.id ? '#fcfcf9' : '#0b0b0b',
-                    elevation: 8,
-                    }}
-                    >
-                    {(() => {
-                      const IconComponent =
-                        IncidentIconMap[incident.type] || IncidentIconMap['protest']
+                      {/* icon container */}
+                      <View
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            backgroundColor: Colors.severity[incident.severity],
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: selectedIncidentId === incident.id ? 3 : 2,
+                            borderColor: selectedIncidentId === incident.id ? '#fcfcf9' : '#0b0b0b',
+                            elevation: 8,
+                          }}
+                      >
+                        {(() => {
+                          const IconComponent = IncidentIconMap[incident.type] || IncidentIconMap['protest']
+                          const sizeMap = {
+                            protest: 22,
+                            construction: 22,
+                            blockade: 20,
+                            vandalism: 24,
+                          }
+                          const iconSize = sizeMap[incident.type] || 20
+                          return <IconComponent size={iconSize} color="#0b0a0a" />
+                        })()}
+                      </View>
 
-                      const sizeMap = {
-                        protest: 22,
-                        construction: 22,
-                        blockade: 20,
-                        vandalism: 24, // bigger to fix visual density
-                      }
-
-                      const iconSize = sizeMap[incident.type] || 20
-
-                      return <IconComponent size={iconSize} color="#0b0a0a" />
-                    })()}
-                  </View>
-
-                  {/* POINTER */}
-                  <View
-                  style={{
-                    width: 0,
-                    height: 0,
-                    borderLeftWidth: 6,
-                    borderRightWidth: 6,
-                    borderTopWidth: 10,
-                    borderLeftColor: 'transparent',
-                    borderRightColor: 'transparent',
-                    borderTopColor: Colors.severity[incident.severity],
-                    marginTop: -2,
-                  }}
-                  />
-          </View>
-          </Marker>
-        ))
+                      {/* pointer */}
+                      <View
+                          style={{
+                            width: 0,
+                            height: 0,
+                            borderLeftWidth: 6,
+                            borderRightWidth: 6,
+                            borderTopWidth: 10,
+                            borderLeftColor: 'transparent',
+                            borderRightColor: 'transparent',
+                            borderTopColor: Colors.severity[incident.severity],
+                            marginTop: -2,
+                          }}
+                      />
+                    </View>
+                  </Marker>
+              ))
           }
 
           {incidents
@@ -349,14 +384,14 @@ const Map = () => {
               />
           ) : (
               !isUserInDangerZone &&
-                  <RoutesOptions
-                      routes={routes}
-                      selectedRouteId={selectedRouteId}
-                      onSelectRoute={setSelectedRouteId}
-                  />
-
+              <RoutesOptions
+                  routes={routes}
+                  selectedRouteId={selectedRouteId}
+                  onSelectRoute={setSelectedRouteId}
+              />
           ))}
         </MapView>
+
         {selectedIncident && (
             <TouchableOpacity
                 style={[
@@ -401,7 +436,6 @@ const Map = () => {
                   </View>
               )}
               {navigatingToSafety ? (
-                  __DEV__ && console.log('[map] rendering I AM SAFE NOW') ||
                   <TouchableOpacity
                       style={styles.safeZoneButton}
                       onPress={() => {
@@ -449,22 +483,22 @@ const Map = () => {
             </View>
         )}
 
-      {/* ROUTE SHEET */}
-      {!isUserInDangerZone && !navigatingToSafety && routes.length > 0 && !routesDismissed && (
-          <RouteResultsSheet
-            routes={routes}
-            selectedRouteId={selectedRouteId}
-            onSelectRoute={setSelectedRouteId}
-            onDismiss={() =>{
-                setRoutesDismissed(true)
-              setDestination(null); // clear destination to hide warnings
-              setSelectedRouteId(null); // clear selected route to hide route warnings
-          }}
+        {/* ROUTE SHEET */}
+        {!isUserInDangerZone && !navigatingToSafety && routes.length > 0 && !routesDismissed && (
+            <RouteResultsSheet
+                routes={routes}
+                selectedRouteId={selectedRouteId}
+                onSelectRoute={setSelectedRouteId}
+                onDismiss={() => {
+                  setRoutesDismissed(true)
+                  setDestination(null)
+                  setSelectedRouteId(null)
+                }}
+            />
+        )}
 
-        />
-      )}
         <OfflineActionModal visible={offlineModal} onClose={() => setOfflineModal(false)} />
-    </ThemedView>
+      </ThemedView>
   )
 }
 
@@ -525,7 +559,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-
   destinationWarningContainer: {
     position: "absolute",
     top: 80,
@@ -573,6 +606,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
+
   incidentCallout: {
     position: 'absolute',
     top: 80,
