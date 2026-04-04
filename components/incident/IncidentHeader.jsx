@@ -4,15 +4,28 @@ import ThemedText from "../ThemedText"
 import { Colors } from "../../constants/Colors"
 import { IncidentIconMap } from "../../constants/Icons"
 
-// icon box color comes from Colors.type, falls back to grey for unknown types
-const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow, userId, onDelete }) => (
+const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow }) => (
     <View style={styles.header}>
 
         {/* type icon */}
-        <View style={[styles.iconBox,  { backgroundColor: Colors.severity[incident.severity] ?? Colors.primaryDark }]}>
-            {IncidentIconMap[incident.type]
-                ? IncidentIconMap[incident.type]({ size: 36, color: '#fff' })
-                : <Ionicons name="alert-circle" size={36} color="#fff" />}
+        {/* type icon + follow pill underneath */}
+        <View style={styles.iconWrapper}>
+            <View style={[styles.iconBox, { backgroundColor: Colors.severity[incident.severity] ?? Colors.primaryDark }]}>
+                {IncidentIconMap[incident.type]
+                    ? IncidentIconMap[incident.type]({ size: 30, color: '#fff' })
+                    : <Ionicons name="alert-circle" size={30} color="#fff" />}
+            </View>
+            <TouchableOpacity
+                onPress={onFollow}
+                disabled={followLoading}
+                style={[styles.followPill, isFollowing && styles.followPillActive]}
+            >
+                {/*<Ionicons name="star" size={13} color={isFollowing ? "#B8860B" : Colors.primary} />*/}
+                <Ionicons name="star" size={13} color={isFollowing ? "#FFD700" : "#6B7280"} />
+                <ThemedText style={[styles.followPillText, isFollowing && styles.followPillTextActive]}>
+                    {isFollowing ? "Following" : "Follow"}
+                </ThemedText>
+            </TouchableOpacity>
         </View>
 
         {/* severity badge + incident type title */}
@@ -23,26 +36,12 @@ const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow, userId
             <ThemedText style={styles.title}>
                 {incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
             </ThemedText>
-        </View>
-
-        {/* follow button — absolutely positioned to top right */}
-        <View style={styles.followButtonAbsolute}>
-            {incident.user_id === userId && (
-                <TouchableOpacity
-                    onPress={onDelete}
-                    style={{ alignItems: "center" }}
-                >
-                    <Ionicons name="trash-outline" size={22} color="#FF3B30" />
-                    <ThemedText style={[styles.followText, { color: '#FF3B30' }]}>Delete</ThemedText>
-                </TouchableOpacity>
-            )}
-
-            <TouchableOpacity onPress={onFollow} disabled={followLoading} style={{ alignItems: "center" }}>
-                <Ionicons name="star" size={24} color={isFollowing ? "#FFD700" : "#6B7280"} />
-                <ThemedText style={styles.followText}>
-                    {isFollowing ? "Following" : "Follow"}
-                </ThemedText>
-            </TouchableOpacity>
+            {/*<TouchableOpacity onPress={onFollow} disabled={followLoading} style={styles.followBelow}>*/}
+            {/*    <Ionicons name="star" size={16} color={isFollowing ? "#FFD700" : "#6B7280"} />*/}
+            {/*    <ThemedText style={styles.followBelowText}>*/}
+            {/*        {isFollowing ? "Following" : "Follow"}*/}
+            {/*    </ThemedText>*/}
+            {/*</TouchableOpacity>*/}
         </View>
 
     </View>
@@ -55,14 +54,50 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "flex-start",
         gap: 15,
-        position: "relative", // needed for absolute follow button
+    },
+    iconWrapper: {
+        alignItems: 'center',
+        // width: 64,
     },
     iconBox: {
         width: 80,
         height: 80,
-        borderRadius: 20,
+        borderRadius: 16,
         justifyContent: "center",
         alignItems: "center",
+    },
+    followPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 8,  // taller touch target
+        borderWidth: 1,
+        marginTop: -25,
+        zIndex: 1,
+        flexShrink: 0,
+        alignSelf: 'center',
+        // backgroundColor: '#EBF4FF',
+        // borderColor: Colors.primary,
+        backgroundColor: '#F3F4F6',
+        borderColor: '#9CA3AF',
+    },
+    followPillActive: {
+        backgroundColor: '#FFF9E6',
+        borderColor: '#FFD700',
+    },
+    followPillText: {
+        fontSize: 12,
+        // color: Colors.primary,
+        color: "#6B7280",
+        fontWeight: '500',
+        flexShrink: 0,
+    },
+    followPillTextActive: {
+        color: '#B8860B',
+        fontWeight: '600',
     },
     textColumn: {
         flexDirection: "column",
@@ -84,19 +119,15 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: "bold",
     },
-    followButtonAbsolute: {
-        position: "absolute",
-        right: 10,
-        top: 5,
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 16,
+    followBelow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginTop: 6,
     },
-    followText: {
-        fontSize: 12,
-        color: "#a3a3a3",
-        fontWeight: "600",
-        textAlign: "center",
-        marginTop: 2,
+    followBelowText: {
+        fontSize: 13,
+        color: "#6B7280",
+        fontWeight: '600',
     },
 })

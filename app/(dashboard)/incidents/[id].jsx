@@ -60,7 +60,6 @@ const IncidentDetails = () => {
     const { locationRef } = useNotificationsContext()
     const userLocation = locationRef?.current
 
-    // offline with nothing cached — don't spin forever, prompt to go back
     if (!incident && isOnline === false) {
         return (
             <ThemedView safe style={styles.container}>
@@ -114,19 +113,19 @@ const IncidentDetails = () => {
         >
             <ThemedView style={styles.container}>
 
-                <IncidentHeader
-                    incident={incident}
-                    isFollowing={isFollowing}
-                    followLoading={followLoading}
-                    onFollow={handleFollow}
-                    userId={userId}
-                    onDelete={confirmDelete}
-                />
+                {/* header + location share a right column so delete and map link align */}
+                <View style={styles.topSection}>
+                    <View style={styles.topLeft}>
+                        <IncidentHeader
+                            incident={incident}
+                            isFollowing={isFollowing}
+                            followLoading={followLoading}
+                            onFollow={handleFollow}
+                            userId={userId}
+                        />
 
-                <Spacer height={10} />
+                        <Spacer height={10} />
 
-                <View style={styles.locationContainer}>
-                    <View style={{ flex: 1 }}>
                         <View style={styles.location}>
                             <Ionicons name="location" size={16} color="#B74949" />
                             {userLocation && incident.latitude && incident.longitude && (
@@ -146,14 +145,35 @@ const IncidentDetails = () => {
                         </View>
                     </View>
 
-                    <TouchableOpacity
-                        style={styles.mapLink}
-                        onPress={() => router.push({ pathname: '/map', params: { alertIncidentId: incident.id, alertTrigger: Date.now() } })}
-                    >
-                        <Ionicons name="map-outline" size={24} color={Colors.primary} />
-                        <ThemedText style={styles.mapLinkText}>View on Map</ThemedText>
-                    </TouchableOpacity>
+                    {/* right column — delete at top, view on map at bottom */}
+                    <View style={styles.rightColumn}>
+                        <View style={styles.rightTop}>
+                            {incident.user_id === userId && (
+                                <TouchableOpacity onPress={confirmDelete} style={styles.rightButton}>
+                                    <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+                                    <ThemedText style={[styles.rightButtonText, { color: '#FF3B30' }]}>Delete</ThemedText>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        <TouchableOpacity
+                            style={styles.rightButton}
+                            onPress={() => router.push({ pathname: '/map', params: { alertIncidentId: incident.id, alertTrigger: Date.now() } })}
+                        >
+                            <Ionicons name="map-outline" size={24} color={Colors.primary} />
+                            <ThemedText style={styles.rightButtonText}>View on Map</ThemedText>
+                        </TouchableOpacity>
+                    </View>
                 </View>
+
+                <Spacer height={5} />
+
+                {incident.description && (
+                    <View style={styles.descriptionContainer}>
+                        <ThemedText style={styles.descriptionText}>
+                            {incident.description}
+                        </ThemedText>
+                    </View>
+                )}
 
                 <View style={styles.separator} />
 
@@ -173,6 +193,9 @@ const IncidentDetails = () => {
                     onVerify={handleVerify}
                     onResolve={handleResolve}
                     onDelete={confirmDelete}
+                    isFollowing={isFollowing}
+                    followLoading={followLoading}
+                    onFollow={handleFollow}
                 />
 
                 <View style={styles.separator} />
@@ -185,7 +208,6 @@ const IncidentDetails = () => {
                     onSubmit={handleComment}
                 />
 
-                {/* single modal shared by all write actions on this screen */}
                 <OfflineActionModal
                     visible={offlineModal}
                     onClose={() => setOfflineModal(false)}
@@ -209,6 +231,34 @@ const styles = StyleSheet.create({
         backgroundColor: "#E0E0E0",
         marginVertical: 10,
     },
+    topSection: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    topLeft: {
+        flex: 1,
+    },
+    rightColumn: {
+        width: 70,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginLeft: 10,
+        paddingTop: 4,
+        alignSelf: 'stretch',
+    },
+    rightTop: {
+        alignItems: 'center',
+    },
+    rightButton: {
+        alignItems: 'center',
+        gap: 4,
+    },
+    rightButtonText: {
+        fontSize: 11,
+        color: Colors.primary,
+        fontWeight: '500',
+        textAlign: 'center',
+    },
     location: {
         flexDirection: "row",
         gap: 6,
@@ -223,24 +273,6 @@ const styles = StyleSheet.create({
     time: {
         fontSize: 14,
         paddingLeft: 7,
-    },
-    locationContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-    },
-    mapLink: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 70,
-        paddingHorizontal: 4,
-        gap: 4,
-        marginLeft: 10,
-    },
-    mapLinkText: {
-        fontSize: 11,
-        color: Colors.primary,
-        fontWeight: '500',
-        textAlign: 'center',
     },
     offlineContainer: {
         flex: 1,
@@ -272,5 +304,13 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '600',
         fontSize: 15,
+    },
+    descriptionContainer: {
+        paddingVertical: 8,
+    },
+    descriptionText: {
+        fontSize: 14,
+        lineHeight: 20,
+        opacity: 0.75,
     },
 })
