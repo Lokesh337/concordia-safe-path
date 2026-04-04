@@ -148,7 +148,7 @@ const IncidentDetails = () => {
 
                     <TouchableOpacity
                         style={styles.mapLink}
-                        onPress={() => router.push({ pathname: '/map', params: { alertIncidentId: incident.id } })}
+                        onPress={() => router.push({ pathname: '/map', params: { alertIncidentId: incident.id, alertTrigger: Date.now() } })}
                     >
                         <Ionicons name="map-outline" size={24} color={Colors.primary} />
                         <ThemedText style={styles.mapLinkText}>View on Map</ThemedText>
