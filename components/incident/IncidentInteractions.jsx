@@ -15,11 +15,13 @@ const IncidentInteractions = ({
                                   onVerify,
                                   onResolve,
                                   onDelete,
+                                  isFollowing,
+                                  followLoading,
+                                  onFollow,
                               }) => (
     <View style={styles.interactionRow}>
 
-
-        {/* UPVOTE — highlights when active, locked + disabled for the reporter */}
+        {/* UPVOTE */}
         <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('up')} disabled={voteLoading || incident.user_id === userId}>
             <View style={styles.actionItem}>
                 <Ionicons name="thumbs-up" size={22} color={userVote === 'up' ? Colors.primary : "#6B7280"} />
@@ -28,7 +30,7 @@ const IncidentInteractions = ({
             <ThemedText style={styles.actionLabel}>Upvotes</ThemedText>
         </TouchableOpacity>
 
-        {/* DOWNVOTE — switching from upvote automatically removes the upvote */}
+        {/* DOWNVOTE */}
         <TouchableOpacity style={styles.actionWrapper} onPress={() => onVote('down')} disabled={voteLoading || incident.user_id === userId}>
             <View style={styles.actionItem}>
                 <Ionicons name="thumbs-down" size={22} color={userVote === 'down' ? '#E53E3E' : "#6B7280"} />
@@ -37,12 +39,17 @@ const IncidentInteractions = ({
             <ThemedText style={styles.actionLabel}>Downvotes</ThemedText>
         </TouchableOpacity>
 
+        {/*/!* FOLLOW *!/*/}
+        {/*<TouchableOpacity style={styles.actionWrapper} onPress={onFollow} disabled={followLoading}>*/}
+        {/*    <View style={styles.actionItem}>*/}
+        {/*        <Ionicons name="star" size={22} color={isFollowing ? "#FFD700" : "#6B7280"} />*/}
+        {/*    </View>*/}
+        {/*    <ThemedText style={styles.actionLabel}>{isFollowing ? "Following" : "Follow"}</ThemedText>*/}
+        {/*</TouchableOpacity>*/}
 
-        {/* STAFF ONLY — verify and resolve, hidden for students */}
+        {/* STAFF ONLY */}
         {isStaff && (
             <View style={styles.staffActions}>
-
-                {/* verify — disabled once incident is resolved */}
                 <TouchableOpacity
                     style={[
                         styles.staffButton,
@@ -60,7 +67,6 @@ const IncidentInteractions = ({
                     </View>
                 </TouchableOpacity>
 
-                {/* resolve — also auto-verifies, see handleResolve in useIncidentDetail */}
                 <TouchableOpacity
                     style={[styles.staffButton, incident.status === 'resolved' && styles.staffButtonDone]}
                     onPress={onResolve}
@@ -73,7 +79,6 @@ const IncidentInteractions = ({
                         <Ionicons name={incident.status === 'resolved' ? "close" : "checkmark"} size={14} color="#fff" />
                     </View>
                 </TouchableOpacity>
-
             </View>
         )}
 
@@ -89,7 +94,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     actionWrapper: {
-        flex: 1,
+        flex: 0.8,
         alignItems: "center",
         gap: 4,
     },
@@ -102,7 +107,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#67686a",
     },
-    // staff section takes flex: 2 so verify + resolve share the same space as 2 action buttons
     staffActions: {
         flex: 2,
         flexDirection: 'row',

@@ -8,12 +8,12 @@ import {
     View
 } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
 import {useEffect, useState} from 'react'
 import MapView, { Marker } from 'react-native-maps'
 import {Ionicons} from "@expo/vector-icons";
 import * as Location from 'expo-location'
-
 
 // themed components
 import ThemedView from "../../components/ThemedView"
@@ -87,7 +87,11 @@ const Create = () => {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ScrollView contentContainerStyle={styles.scroll}>
+            <KeyboardAwareScrollView
+                contentContainerStyle={styles.scroll}
+                enableOnAndroid={true}
+                extraScrollHeight={20}
+            >
                 <ThemedView style={styles.container}>
                     <Spacer height={10}/>
                     {pin
@@ -219,7 +223,7 @@ const Create = () => {
                         }}
                     />
                 </ThemedView>
-            </ScrollView>
+            </KeyboardAwareScrollView>
         </TouchableWithoutFeedback>
     )
 }
