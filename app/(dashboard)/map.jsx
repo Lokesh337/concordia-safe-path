@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from "react"
 import { StyleSheet, View, TouchableOpacity, Keyboard, Text } from 'react-native'
-import PulsingButton from '../../components/PulsingButton'
 import MapView, { Marker, Circle, Polygon } from "react-native-maps"
 import * as Location from "expo-location"
 
@@ -54,6 +53,9 @@ const Map = () => {
   const rawTrigger = Array.isArray(_alertTrigger) ? _alertTrigger[0] : _alertTrigger
 
   const [alertIncidentId, setAlertIncidentId] = useState(rawAlertId)
+  const [showSafeNowButton, setShowSafeNowButton] = useState(false)
+  const [safeZoneExpanded, setSafeZoneExpanded] = useState(false)
+  const [safeNowExpanded, setSafeNowExpanded] = useState(false)
 
   const {
     isUserInDangerZone,
@@ -181,6 +183,8 @@ const Map = () => {
     if (!isUserInDangerZone && !navigatingToSafety) {
       setDestination(null)
       setSafeZoneMessage(null)
+       setSafeZoneExpanded(false)
+       setSafeNowExpanded(false)
     }
   }, [isUserInDangerZone])
 
@@ -193,6 +197,17 @@ const Map = () => {
       setSelectedIncidentId(null)
     }
   }, [incidents])
+
+  useEffect(() => {
+    if (navigatingToSafety && routes.length > 0) {
+        const timer = setTimeout(() => {
+            setShowSafeNowButton(true)
+        }, 5000) // 10 seconds delay
+        return () => clearTimeout(timer)
+    } else {
+        setShowSafeNowButton(false)
+    }
+}, [navigatingToSafety, routes.length])
 
   // clear selected incident when screen comes into focus from navigation
   useFocusEffect(
@@ -435,39 +450,81 @@ const Map = () => {
                     </ThemedText>
                   </View>
               )}
-              {navigatingToSafety ? (
-                  <TouchableOpacity
-                      style={styles.safeZoneButton}
-                      onPress={() => {
-                        setDestination(null)
-                        setNavigatingToSafety(false)
-                        setSafeZoneMessage(null)
-                        setSelectedRouteId(null)
-                        setRoutesDismissed(true)
-                      }}
-                      activeOpacity={0.85}
-                  >
-                    <ThemedText style={styles.safeZoneButtonText}>I AM SAFE NOW</ThemedText>
-                  </TouchableOpacity>
-              ) : (
-                  // SAFE ZONE NOW requires Directions API — block when offline
-                  <PulsingButton
-                      label="SAFE ZONE NOW"
-                      onPress={async () => {
-                        if (!isOnline) { setOfflineModal(true); return }
-                        const nearest = getNearestBuilding()
-                        if (nearest) {
-                          originSnapshot.current = location
-                          setDestination({ latitude: nearest.latitude, longitude: nearest.longitude })
-                          setNavigatingToSafety(true)
-                          setRoutesDismissed(false)
-                        } else {
-                          setSafeZoneMessage('⚠ All nearby buildings are in a danger zone. Please stay put.')
-                        }
-                      }}
-                  />
-              )}
-            </>
+              {navigatingToSafety && showSafeNowButton ? (
+    safeNowExpanded ? (
+        <View style={styles.safeZoneSplit}>
+            <TouchableOpacity
+                style={styles.safeZoneSplitAction}
+                onPress={() => {
+                    setDestination(null)
+                    setNavigatingToSafety(false)
+                    setSafeZoneMessage(null)
+                    setSelectedRouteId(null)
+                    setRoutesDismissed(true)
+                    setShowSafeNowButton(false)
+                    setSafeNowExpanded(false)
+                }}
+                activeOpacity={0.85}
+            >
+                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                <Text style={styles.safeZoneSplitText}>I'm Safe</Text>
+            </TouchableOpacity>
+            <View style={styles.safeZoneDivider} />
+            <TouchableOpacity
+                style={styles.safeZoneSplitDismiss}
+                onPress={() => setSafeNowExpanded(false)}
+            >
+                <Ionicons name="close" size={18} color="#fff" />
+            </TouchableOpacity>
+        </View>
+    ) : (
+        <TouchableOpacity
+            style={styles.safeZoneCircle}
+            onPress={() => setSafeNowExpanded(true)}
+        >
+            <Ionicons name="shield-checkmark" size={22} color="#fff" />
+        </TouchableOpacity>
+    )
+                ) : !navigatingToSafety ? (
+                    safeZoneExpanded ? (
+                        <View style={styles.safeZoneSplit}>
+                            <TouchableOpacity
+                                style={styles.safeZoneSplitAction}
+                                onPress={async () => {
+                                    if (!isOnline) { setOfflineModal(true); return }
+                                    const nearest = getNearestBuilding()
+                                    if (nearest) {
+                                        originSnapshot.current = location
+                                        setDestination({ latitude: nearest.latitude, longitude: nearest.longitude })
+                                        setNavigatingToSafety(true)
+                                        setRoutesDismissed(false)
+                                        setSafeZoneExpanded(false)
+                                    } else {
+                                        setSafeZoneMessage('⚠ All nearby buildings are in a danger zone. Please stay put.')
+                                    }
+                                }}
+                            >
+                                <Ionicons name="shield" size={18} color="#fff" />
+                                <Text style={styles.safeZoneSplitText}>Safe Zone Now</Text>
+                            </TouchableOpacity>
+                            <View style={styles.safeZoneDivider} />
+                            <TouchableOpacity
+                                style={styles.safeZoneSplitDismiss}
+                                onPress={() => setSafeZoneExpanded(false)}
+                            >
+                                <Ionicons name="close" size={18} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <TouchableOpacity
+                            style={styles.safeZoneCircle}
+                            onPress={() => setSafeZoneExpanded(true)}
+                        >
+                            <Ionicons name="shield" size={22} color="#fff" />
+                        </TouchableOpacity>
+                    )
+                ) : null}
+               </>
         )}
 
         {!isUserInDangerZone && !navigatingToSafety && !isDestinationInDangerZone && isSelectedRouteUnsafe && (
@@ -533,26 +590,31 @@ const styles = StyleSheet.create({
   },
 
   safeZoneButton: {
-    position: 'absolute',
-    bottom: 32,
-    alignSelf: 'center',
-    backgroundColor: '#27ae60',
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 30,
-    elevation: 6,
-    zIndex: 20,
-    shadowColor: '#27ae60',
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
+  position: 'absolute',
+  bottom: 32,
+  left: 20,
+  backgroundColor: '#27ae60',
+
+  paddingHorizontal: 20,   // 👈 smaller
+  paddingVertical: 10,     // 👈 smaller
+  borderRadius: 22,
+
+  flexDirection: 'row',    // 👈 for icon
+  alignItems: 'center',
+  gap: 6,
+
+  elevation: 3,            // 👈 softer shadow
+  shadowColor: '#000',
+  shadowOpacity: 0.15,
+  shadowRadius: 6,
+  shadowOffset: { width: 0, height: 2 },
+},
 
   safeZoneButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  color: '#fff',
+  fontWeight: '600',
+  fontSize: 14,
+},
 
   safeButtonText: {
     color: "white",
@@ -661,5 +723,125 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '500',
   },
+  safeZoneCompact: {
+    position: 'absolute',
+    bottom: 32,
+    alignSelf: 'center',
+    backgroundColor: '#27ae60',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    elevation: 6,
+    zIndex: 20,
+    shadowColor: '#27ae60',
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  safeZoneCompactText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 15,
+  },
+  safeZoneWarning: {
+    position: 'absolute',
+    bottom: 90, // 👈 sits just above button
+    alignSelf: 'center',
+    backgroundColor: '#FFF3CD',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    elevation: 6,
+    zIndex: 20,
+    width: '85%',
+  },
+
+  safeZoneWarningText: {
+    color: '#B45309',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+
+  safeZoneWarningSub: {
+    color: '#7C2D12',
+    textAlign: 'center',
+    marginTop: 4,
+    fontSize: 12,
+  },
+  safeExitNote: {
+    position: 'absolute',
+    bottom: 80, // 👈 sits above button
+    alignSelf: 'center',
+    backgroundColor: '#E6F4EA',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    elevation: 3,
+    zIndex: 20,
+  },
+
+  safeExitNoteText: {
+    color: '#1B5E20',
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  safeZoneCircle: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#27ae60',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    zIndex: 20,
+    shadowColor: '#27ae60',
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+},
+safeZoneSplit: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#27ae60',
+    borderRadius: 26,
+    elevation: 6,
+    zIndex: 20,
+    overflow: 'hidden',
+    shadowColor: '#27ae60',
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+},
+safeZoneSplitAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+},
+safeZoneSplitText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+},
+safeZoneDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+},
+safeZoneSplitDismiss: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+},
 
 })
