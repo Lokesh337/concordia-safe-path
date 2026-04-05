@@ -8,40 +8,34 @@ const IncidentHeader = ({ incident, isFollowing, followLoading, onFollow }) => (
     <View style={styles.header}>
 
         {/* type icon */}
-        {/* type icon + follow pill underneath */}
         <View style={styles.iconWrapper}>
             <View style={[styles.iconBox, { backgroundColor: Colors.severity[incident.severity] ?? Colors.primaryDark }]}>
                 {IncidentIconMap[incident.type]
                     ? IncidentIconMap[incident.type]({ size: 30, color: '#fff' })
                     : <Ionicons name="alert-circle" size={30} color="#fff" />}
             </View>
-            <TouchableOpacity
-                onPress={onFollow}
-                disabled={followLoading}
-                style={[styles.followPill, isFollowing && styles.followPillActive]}
-            >
-                {/*<Ionicons name="star" size={13} color={isFollowing ? "#B8860B" : Colors.primary} />*/}
-                <Ionicons name="star" size={13} color={isFollowing ? "#FFD700" : "#6B7280"} />
-                <ThemedText style={[styles.followPillText, isFollowing && styles.followPillTextActive]}>
-                    {isFollowing ? "Following" : "Follow"}
-                </ThemedText>
-            </TouchableOpacity>
         </View>
 
-        {/* severity badge + incident type title */}
+        {/* severity badge + incident type title + follow pill */}
         <View style={styles.textColumn}>
             <ThemedText style={styles.severityDisplay}>
                 {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1) + " tension"}
             </ThemedText>
-            <ThemedText style={styles.title}>
-                {incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
-            </ThemedText>
-            {/*<TouchableOpacity onPress={onFollow} disabled={followLoading} style={styles.followBelow}>*/}
-            {/*    <Ionicons name="star" size={16} color={isFollowing ? "#FFD700" : "#6B7280"} />*/}
-            {/*    <ThemedText style={styles.followBelowText}>*/}
-            {/*        {isFollowing ? "Following" : "Follow"}*/}
-            {/*    </ThemedText>*/}
-            {/*</TouchableOpacity>*/}
+            <View style={styles.titleRow}>
+                <ThemedText style={styles.title}>
+                    {incident.type.charAt(0).toUpperCase() + incident.type.slice(1)}
+                </ThemedText>
+                <TouchableOpacity
+                    onPress={onFollow}
+                    disabled={followLoading}
+                    style={[styles.followPill, isFollowing && styles.followPillActive]}
+                >
+                    <Ionicons name="star" size={13} color={isFollowing ? "#FFD700" : "#6B7280"} />
+                    <ThemedText style={[styles.followPillText, isFollowing && styles.followPillTextActive]}>
+                        {isFollowing ? "Following" : "Follow"}
+                    </ThemedText>
+                </TouchableOpacity>
+            </View>
         </View>
 
     </View>
@@ -57,47 +51,13 @@ const styles = StyleSheet.create({
     },
     iconWrapper: {
         alignItems: 'center',
-        // width: 64,
     },
     iconBox: {
-        width: 80,
-        height: 80,
+        width: 65,
+        height: 65,
         borderRadius: 16,
         justifyContent: "center",
         alignItems: "center",
-    },
-    followPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-
-        borderRadius: 20,
-        paddingHorizontal: 12,
-        paddingVertical: 8,  // taller touch target
-        borderWidth: 1,
-        marginTop: -25,
-        zIndex: 1,
-        flexShrink: 0,
-        alignSelf: 'center',
-        // backgroundColor: '#EBF4FF',
-        // borderColor: Colors.primary,
-        backgroundColor: '#F3F4F6',
-        borderColor: '#9CA3AF',
-    },
-    followPillActive: {
-        backgroundColor: '#FFF9E6',
-        borderColor: '#FFD700',
-    },
-    followPillText: {
-        fontSize: 12,
-        // color: Colors.primary,
-        color: "#6B7280",
-        fontWeight: '500',
-        flexShrink: 0,
-    },
-    followPillTextActive: {
-        color: '#B8860B',
-        fontWeight: '600',
     },
     textColumn: {
         flexDirection: "column",
@@ -115,19 +75,40 @@ const styles = StyleSheet.create({
         alignSelf: "flex-start",
         marginBottom: 15,
     },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
     title: {
         fontSize: 24,
         fontWeight: "bold",
+        flexShrink: 1,
     },
-    followBelow: {
+    followPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
-        marginTop: 6,
+        gap: 4,
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderWidth: 1,
+        flexShrink: 0,
+        backgroundColor: '#F3F4F6',
+        borderColor: '#9CA3AF',
     },
-    followBelowText: {
-        fontSize: 13,
+    followPillActive: {
+        backgroundColor: '#FFF9E6',
+        borderColor: '#FFD700',
+    },
+    followPillText: {
+        fontSize: 12,
         color: "#6B7280",
+        fontWeight: '500',
+        flexShrink: 0,
+    },
+    followPillTextActive: {
+        color: '#B8860B',
         fontWeight: '600',
     },
 })
