@@ -5,20 +5,39 @@ A campus safety mobile app for Concordia University students — real-time incid
 > Built as part of SOEN 6751 (Human-Computer Interaction) at Concordia University, Winter 2026.
 
 ---
-
-## Screenshots
-
-<p float="left">
-  <img src="assets/screenshots/map_callout.jpg" width="15%" />
-  <img src="assets/screenshots/proximity_alert.jpg" width="15%" />
-  <img src="assets/screenshots/incident_detail.jpg" width="15%" />
-  <img src="assets/screenshots/route_safe.jpg" width="15%" />
-  <img src="assets/screenshots/safe_zone_now.jpg" width="15%" />
-  <img src="assets/screenshots/emergency.jpg" width="15%" />
-</p>
-
+## Demo
+ 
+[![Demo](https://img.youtube.com/vi/WUggIIcdsMM/maxresdefault.jpg)](https://youtu.be/WUggIIcdsMM)
+ 
 ---
  
+## Screenshots
+ 
+<table>
+  <tr>
+    <td align="center"><img src="assets/screenshots/map_callout.jpg" width="300"/></td>
+    <td align="center"><img src="assets/screenshots/proximity_alert.jpg" width="300"/></td>
+    <td align="center"><img src="assets/screenshots/incident_detail.jpg" width="300"/></td>
+  </tr>
+  <tr>
+    <td align="center">Campus Map</td>
+    <td align="center">Proximity Alert</td>
+    <td align="center">Incident Detail</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/screenshots/route_safe.jpg" width="300"/></td>
+    <td align="center"><img src="assets/screenshots/safe_zone_now.jpg" width="300"/></td>
+    <td align="center"><img src="assets/screenshots/emergency.jpg" width="300"/></td>
+  </tr>
+  <tr>
+    <td align="center">Safe Route Planning</td>
+    <td align="center">Safe Zone Now</td>
+    <td align="center">Emergency Resources</td>
+  </tr>
+</table>
+
+---
+
 ## Features
  
 - **Live incident map** — see what's happening on campus right now, with color-coded markers and live updates
@@ -46,14 +65,14 @@ A campus safety mobile app for Concordia University students — real-time incid
 
 ## Team
 
-| Name | Student ID |
-|---|---|
-| Mary Ann Ng Kwet Pin | 40336644 |
-| The-Luan Tran | 40321765 |
-| Pirasana Ariyam | 40188773 |
-| Honey Sharma | 40292445 |
-| Siva Sankar Reddy Veluri | 40162043 |
-| Lokesh Kommalapati | 40301947 |
+| Name |
+|---|
+| Mary Ann Ng Kwet Pin |
+| The-Luan Tran |
+| Pirasana Ariyam |
+| Honey Sharma |
+| Siva Sankar Reddy Veluri |
+| Lokesh Kommalapati |
 
 ---
 
