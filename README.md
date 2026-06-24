@@ -51,7 +51,23 @@ A campus safety mobile app for Concordia University students — real-time incid
 
 
 ---
+## My Contributions
 
+As part of a 6-member development team, I contributed to the design and development of the Concordia Safe Path mobile application.
+
+### Key Contributions
+- Developed React Native UI components and user-facing screens.
+- Integrated Supabase services for authentication and data management.
+- Assisted in implementing campus safety reporting and incident management features.
+- Participated in Agile sprint planning, testing, debugging, and feature refinement.
+- Collaborated using Git and GitHub for version control and code reviews.
+
+### Technologies Used
+- React Native
+- Expo
+- JavaScript
+- Supabase
+- Git & GitHub
 ## Tech Stack
 
 | Layer | Technology |
